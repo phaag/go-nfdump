@@ -62,7 +62,7 @@ func main() {
 			fmt.Printf("SrcIP: %v\n", ipAddr.SrcIP)
 			fmt.Printf("DstIP: %v\n", ipAddr.DstIP)
 		}
-    /*
+		/*
 			other extension
 			flowMisc := record.FlowMisc()
 			cntFlow := record.CntFlow()
