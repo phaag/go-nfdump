@@ -33,9 +33,10 @@ package nfrecord
 
 import (
 	"encoding/binary"
-	"go-nfdump/nffile"
 	"net"
 	"unsafe"
+
+	"github.com/phaag/go-nfdump/nffile"
 )
 
 type EXip struct {

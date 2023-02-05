@@ -1,4 +1,4 @@
-module go-nfdump
+module github.com/phaag/go-nfdump
 
 go 1.17
 

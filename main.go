@@ -32,9 +32,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"go-nfdump/nffile"
-	"go-nfdump/nfrecord"
 	"os"
+
+	"github.com/phaag/go-nfdump/nffile"
+	"github.com/phaag/go-nfdump/nfrecord"
 )
 
 var (
