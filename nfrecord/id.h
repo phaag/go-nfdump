@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2023, Peter Haag
+ *  Copyright (c) 2022, Peter Haag
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -25,69 +25,41 @@
  *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
+ *
  */
 
-package main
+#ifndef _ID_H
+#define _ID_H 1
 
-import (
-	"flag"
-	"fmt"
-	"go-nfdump/nffile"
-	"go-nfdump/nfrecord"
-	"os"
-)
+// Legacy records
+#define CommonRecordV0Type 1
+#define ExtensionMapType 2
+#define PortHistogramType 3
+#define BppHistogramType 4
+#define LegacyRecordType1 5
+#define LegacyRecordType2 6
 
-var (
-	fileName = flag.String("r", "", "nfdump file to read")
-)
+// exporter/sampler types
+#define ExporterInfoRecordType 7
+#define ExporterStatRecordType 8
 
-func main() {
+// legacy sampler
+#define SamplerLegacyRecordType 9
 
-	flag.CommandLine.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage of %s [flags]\n", os.Args[0])
-		flag.PrintDefaults()
-	}
+// new extended Common Record as intermediate solution to overcome 255 exporters
+// requires moderate changes till 1.7
+#define CommonRecordType 10
 
-	flag.Parse()
+// Identifier for new V3Record
+#define V3Record 11
 
-	if len(*fileName) == 0 {
-		fmt.Printf("Filename required\n")
-		flag.PrintDefaults()
-		os.Exit(255)
-	}
+// record type definition
+#define NbarRecordType 12
+#define IfNameRecordType 13
+#define VrfNameRecordType 14
 
-	nffile := nffile.New()
+#define SamplerRecordType 15
 
-	if err := nffile.Open(*fileName); err != nil {
-		fmt.Printf("Failed to open nf file: %v\n", err)
-		os.Exit(255)
-	}
+#define MaxRecordID 14
 
-	// print nffile stats
-	fmt.Printf("nffile:\n%v", nffile)
-
-	// Dump flow records
-	recordChannel, _ := nfrecord.AllRecords(nffile)
-	cnt := 0
-	for record := range recordChannel {
-		cnt++
-		fmt.Printf("record: %d\n%v\n", cnt, record)
-		genericFlow := record.GenericFlow()
-		if genericFlow != nil {
-			fmt.Printf("SrcPort: %d\n", genericFlow.SrcPort)
-			fmt.Printf("DstPort: %d\n", genericFlow.DstPort)
-		}
-		ipAddr := record.IP()
-		if ipAddr != nil {
-			fmt.Printf("SrcIP: %v\n", ipAddr.SrcIP)
-			fmt.Printf("DstIP: %v\n", ipAddr.DstIP)
-		}
-		/*
-			other extension
-			flowMisc := record.FlowMisc()
-			cntFlow := record.CntFlow()
-			vLan := record.VLan()
-			asRouting := record.AsRouting()
-		*/
-	}
-}
+#endif

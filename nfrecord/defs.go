@@ -1,3 +1,5 @@
+//go:build ignore
+
 /*
  *  Copyright (c) 2023, Peter Haag
  *  All rights reserved.
@@ -27,67 +29,36 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-package main
+package nfrecord
 
-import (
-	"flag"
-	"fmt"
-	"go-nfdump/nffile"
-	"go-nfdump/nfrecord"
-	"os"
-)
+//#define GOLANG 1
+//#include <stdint.h>
+//#include "nfxV3.h"
+//#include "id.h"
+//
+import "C"
 
-var (
-	fileName = flag.String("r", "", "nfdump file to read")
-)
+const EXnull = uint(C.EXnull)
+const EXgenericFlowID = uint16(C.EXgenericFlowID)
+const EXipv4FlowID = uint16(C.EXipv4FlowID)
+const EXipv6FlowID = uint16(C.EXipv6FlowID)
+const EXflowMiscID = uint16(C.EXflowMiscID)
+const EXcntFlowID = uint16(C.EXcntFlowID)
+const EXvLanID = uint16(C.EXvLanID)
+const EXasRoutingID = uint16(C.EXasRoutingID)
 
-func main() {
+const V3_FLAG_EVENT = uint(C.V3_FLAG_EVENT)
+const V3_FLAG_SAMPLED = uint(C.V3_FLAG_SAMPLED)
+const V3_FLAG_ANON = uint(C.V3_FLAG_ANON)
 
-	flag.CommandLine.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage of %s [flags]\n", os.Args[0])
-		flag.PrintDefaults()
-	}
+const V3Record = uint16(C.V3Record)
 
-	flag.Parse()
+const MAXEXTENSIONS = uint16(C.MAXEXTENSIONS)
 
-	if len(*fileName) == 0 {
-		fmt.Printf("Filename required\n")
-		flag.PrintDefaults()
-		os.Exit(255)
-	}
+type recordHeaderV3 C.struct_recordHeaderV3_s
 
-	nffile := nffile.New()
-
-	if err := nffile.Open(*fileName); err != nil {
-		fmt.Printf("Failed to open nf file: %v\n", err)
-		os.Exit(255)
-	}
-
-	// print nffile stats
-	fmt.Printf("nffile:\n%v", nffile)
-
-	// Dump flow records
-	recordChannel, _ := nfrecord.AllRecords(nffile)
-	cnt := 0
-	for record := range recordChannel {
-		cnt++
-		fmt.Printf("record: %d\n%v\n", cnt, record)
-		genericFlow := record.GenericFlow()
-		if genericFlow != nil {
-			fmt.Printf("SrcPort: %d\n", genericFlow.SrcPort)
-			fmt.Printf("DstPort: %d\n", genericFlow.DstPort)
-		}
-		ipAddr := record.IP()
-		if ipAddr != nil {
-			fmt.Printf("SrcIP: %v\n", ipAddr.SrcIP)
-			fmt.Printf("DstIP: %v\n", ipAddr.DstIP)
-		}
-		/*
-			other extension
-			flowMisc := record.FlowMisc()
-			cntFlow := record.CntFlow()
-			vLan := record.VLan()
-			asRouting := record.AsRouting()
-		*/
-	}
-}
+type EXgenericFlow C.struct_EXgenericFlow_s
+type EXflowMisc C.struct_EXflowMisc_s
+type EXcntFlow C.struct_EXcntFlow_s
+type EXvLan C.struct_EXvLan_s
+type EXasRouting C.struct_EXasRouting_s

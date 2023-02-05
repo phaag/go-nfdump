@@ -181,7 +181,7 @@ func (nfFile *NfFile) readAppendix() error {
 			*/
 			switch record.Type {
 			case TYPE_IDENT:
-				ident := make([]byte, record.Size-4)
+				ident := make([]byte, record.Size-5) // 5: 4 header + 0 byte
 				binary.Read(b, binary.LittleEndian, &ident)
 				nfFile.ident = string(ident)
 			case TYPE_STAT:
@@ -252,12 +252,12 @@ func (nfFile *NfFile) ReadDataBlocks() (chan DataBlock, error) {
 			dataBlock := DataBlock{}
 			if err := binary.Read(nfFile.file, binary.LittleEndian, &dataBlock.Header); err != nil {
 				close(blockChannel)
-				fmt.Printf("nfFile read block header: %v", err)
+				// fmt.Printf("nfFile read block header: %v", err)
 				return
 			}
 			var err error
 			dataBlock.Data, err = nfFile.uncompressBlock(&dataBlock.Header)
-			fmt.Printf("nfFile uncompress block: %v", err)
+			// fmt.Printf("nfFile uncompress block: %v", err)
 			if err == nil {
 				blockChannel <- dataBlock
 			}

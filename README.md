@@ -2,7 +2,7 @@
 
 This Go module allows to read and process files created by [nfdump](https://github.com/phaag/nfdump), the netflow/ipfix/sflow collector and processing tools.
 
-This module is experimental and does not yet decode all available nfdump elements. It reads and processes only nfdump v2 files, which are created by nfdump-1.7.x. Files created with nfdump-1.6.x are recogized but skipped for decoding.
+This module is experimental and does not yet decode all available nfdump record extensions. It reads and processes only nfdump v2 files, which are created by nfdump-1.7.x. Files created with nfdump-1.6.x are recogized but skipped for decoding.
 
 Expample to read and process a flow file:
 
@@ -40,9 +40,7 @@ func main() {
 	}
 	
 	nffile := nffile.New()
-	err := nffile.Open(*fileName)
-	
-	if err != nil {
+	if err := nffile.Open(*fileName); err != nil {
 		fmt.Printf("Failed to open nf file: %v\n", err)
 		os.Exit(255)
 	}
@@ -63,35 +61,24 @@ func main() {
 		if ipAddr != nil {
 			fmt.Printf("SrcIP: %v\n", ipAddr.SrcIP)
 			fmt.Printf("DstIP: %v\n", ipAddr.DstIP)
-	
 		}
+    /*
+			other extension
+			flowMisc := record.FlowMisc()
+			cntFlow := record.CntFlow()
+			vLan := record.VLan()
+			asRouting := record.AsRouting()
+		*/
 	}
 }
 
 ```
 
-So far the generic data block as well as IPv4/IPv6 addresses are avilable through the interface.
+The `nfrecord/defs.go` file includes nfdump's `nfxV3.h` header file to convert individual record extensions into appropriate Golang records. So far the generic, misc, flowCount, vlan and asRouting extensions as well as IPv4/IPv6 addresses are available through the interface. See the nfxV3.go file for its definitions.
 
-```go
-type EXgenericFlow struct {
-	MsecFirst    uint64
-	MsecLast     uint64
-	MsecReceived uint64
-	InPackets    uint64
-	InBytes      uint64
-	SrcPort      uint16
-	DstPort      uint16
-	Proto        uint8
-	TcpFlags     uint8
-	FwdStatus    uint8
-	SrcTos       uint8
-}
+If you modify the `defs.go` file, generate `nfxV3.go` use the go command
 
-type EXip struct {
-	SrcIP net.IP
-	DstIP net.IP
-}
-```
+`go generate ./...`
 
 Please note, that the interface may be subject to change, as this module is work in progress.
 

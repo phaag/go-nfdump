@@ -1,3 +1,5 @@
+//go:generate sh -c "go tool cgo -godefs defs.go >nfxV3.go"
+
 /*
  *  Copyright (c) 2023, Peter Haag
  *  All rights reserved.
@@ -31,49 +33,10 @@ package nfrecord
 
 import (
 	"encoding/binary"
-	"fmt"
 	"go-nfdump/nffile"
 	"net"
-	"time"
 	"unsafe"
 )
-
-const EXgenericFlowID = 1
-const EXipv4FlowID = 2
-const EXipv6FlowID = 3
-
-const V3_FLAG_EVENT = 1
-const V3_FLAG_SAMPLED = 2
-const V3_FLAG_ANON = 4
-
-const V3RecordID = 11
-
-const MAXEXTENSIONS = 38
-
-type recordHeaderV3 struct {
-	Type        uint16
-	Size        uint16
-	NumElements uint16
-	EngineType  uint8
-	EngineID    uint8
-	ExporterID  uint16
-	Flags       uint8
-	Nfversion   uint8
-}
-
-type EXgenericFlow struct {
-	MsecFirst    uint64
-	MsecLast     uint64
-	MsecReceived uint64
-	InPackets    uint64
-	InBytes      uint64
-	SrcPort      uint16
-	DstPort      uint16
-	Proto        uint8
-	TcpFlags     uint8
-	FwdStatus    uint8
-	SrcTos       uint8
-}
 
 type EXip struct {
 	SrcIP net.IP
@@ -83,51 +46,10 @@ type EXip struct {
 type FlowRecordV3 struct {
 	rawRecord    []byte
 	recordHeader *recordHeaderV3
-	genericFlow  *EXgenericFlow
 	srcIP        net.IP
 	dstIP        net.IP
 	extOffset    [MAXEXTENSIONS]int
 }
-
-func flagsString(flags uint16) string {
-	var flagChars = []byte{'.', '.', '.', '.', '.', '.', '.', '.'}
-
-	// Congestion window reduced -  CWR
-	if flags&128 != 0 {
-		flagChars[0] = 'C'
-	}
-	// ECN-Echo
-	if flags&64 != 0 {
-		flagChars[1] = 'E'
-	}
-	// Urgent
-	if flags&32 != 0 {
-		flagChars[2] = 'U'
-	}
-	// Ack
-	if flags&16 != 0 {
-		flagChars[3] = 'A'
-	}
-	// Push
-	if flags&8 != 0 {
-		flagChars[4] = 'P'
-	}
-	// Reset
-	if flags&4 != 0 {
-		flagChars[5] = 'R'
-	}
-	// Syn
-	if flags&2 != 0 {
-		flagChars[6] = 'S'
-	}
-	// Fin
-	if flags&1 != 0 {
-		flagChars[7] = 'F'
-	}
-
-	return string(flagChars)
-
-} // End of FlagsString
 
 // Extract next flow record
 func New(record []byte) *FlowRecordV3 {
@@ -137,7 +59,7 @@ func New(record []byte) *FlowRecordV3 {
 	recordSize := binary.LittleEndian.Uint16(record[offset+2 : offset+4])
 	numElements := binary.LittleEndian.Uint16(record[offset+4 : offset+6])
 
-	if recordType != V3RecordID {
+	if recordType != V3Record {
 		return nil
 	}
 
@@ -157,8 +79,6 @@ func New(record []byte) *FlowRecordV3 {
 			flowRecord.extOffset[elementType] = exOffset
 		}
 		switch elementType {
-		case EXgenericFlowID:
-			flowRecord.genericFlow = (*EXgenericFlow)(unsafe.Pointer(&raw[exOffset]))
 		case EXipv4FlowID:
 			flowRecord.srcIP = net.IPv4(raw[exOffset+3], raw[exOffset+2], raw[exOffset+1], raw[exOffset])
 			flowRecord.dstIP = net.IPv4(raw[exOffset+7], raw[exOffset+6], raw[exOffset+5], raw[exOffset+4])
@@ -172,39 +92,14 @@ func New(record []byte) *FlowRecordV3 {
 	return flowRecord
 }
 
-// Return string for %v Printf()
-func (flowRecord *FlowRecordV3) String() string {
-	var flowType string
-	if flowRecord.recordHeader.Nfversion != 0 {
-		if flowRecord.recordHeader.Nfversion&0x80 != 0 {
-			flowType = "SFLOW"
-		} else if flowRecord.recordHeader.Nfversion&0x40 != 0 {
-			flowType = "PCAP"
-		} else {
-			flowType = "NETFLOW"
-		}
-	} else {
-		flowType = "FLOW"
-	}
-
-	var s string = "" +
-		fmt.Sprintf("Flow Record:\n") +
-		fmt.Sprintf("  Flags      : %v %s\n", flowRecord.recordHeader.Flags, flowType) +
-		fmt.Sprintf("  Elements   : %v\n", flowRecord.recordHeader.NumElements) +
-		fmt.Sprintf("  Size       : %v\n", flowRecord.recordHeader.Size) +
-		fmt.Sprintf("  EngineType : %v\n", flowRecord.recordHeader.EngineType) +
-		fmt.Sprintf("  EngineID   : %v\n", flowRecord.recordHeader.EngineID) +
-		fmt.Sprintf("  ExporterID : %v\n", flowRecord.recordHeader.ExporterID) +
-		fmt.Sprintf("  Netflow    : %v\n", flowRecord.recordHeader.Nfversion)
-	if flowRecord.genericFlow != nil {
-		s = flowRecord.DumpEXgenericFlow(s)
-	}
-	return s + fmt.Sprintf("  SrcIP      : %v\n  DstIP      : %v\n", flowRecord.srcIP, flowRecord.dstIP)
-}
-
 // Return generic extension
 func (flowRecord *FlowRecordV3) GenericFlow() *EXgenericFlow {
-	return flowRecord.genericFlow
+	offset := flowRecord.extOffset[EXgenericFlowID]
+	if offset == 0 {
+		return nil
+	}
+	genericFlow := (*EXgenericFlow)(unsafe.Pointer(&flowRecord.rawRecord[offset]))
+	return genericFlow
 }
 
 // Return IP record
@@ -212,26 +107,44 @@ func (flowRecord *FlowRecordV3) IP() *EXip {
 	return &EXip{flowRecord.srcIP, flowRecord.dstIP}
 }
 
-func (flowRecord *FlowRecordV3) DumpEXgenericFlow(s string) string {
+// Return misc extension
+func (flowRecord *FlowRecordV3) FlowMisc() *EXflowMisc {
+	offset := flowRecord.extOffset[EXflowMiscID]
+	if offset == 0 {
+		return nil
+	}
+	flowMisc := (*EXflowMisc)(unsafe.Pointer(&flowRecord.rawRecord[offset]))
+	return flowMisc
+}
 
-	tTime := time.UnixMilli(int64(flowRecord.genericFlow.MsecFirst))
-	s += fmt.Sprintf("  First      : %d %v\n", flowRecord.genericFlow.MsecFirst, tTime)
+// Return misc extension
+func (flowRecord *FlowRecordV3) CntFlow() *EXcntFlow {
+	offset := flowRecord.extOffset[EXcntFlowID]
+	if offset == 0 {
+		return nil
+	}
+	cntFlow := (*EXcntFlow)(unsafe.Pointer(&flowRecord.rawRecord[offset]))
+	return cntFlow
+}
 
-	tTime = time.UnixMilli(int64(flowRecord.genericFlow.MsecLast))
-	s += fmt.Sprintf("  Last       : %d %v\n", flowRecord.genericFlow.MsecLast, tTime)
+// Return misc extension
+func (flowRecord *FlowRecordV3) VLan() *EXvLan {
+	offset := flowRecord.extOffset[EXvLanID]
+	if offset == 0 {
+		return nil
+	}
+	vlan := (*EXvLan)(unsafe.Pointer(&flowRecord.rawRecord[offset]))
+	return vlan
+}
 
-	tTime = time.UnixMilli(int64(flowRecord.genericFlow.MsecReceived))
-	s += fmt.Sprintf("  Received   : %d %v\n", flowRecord.genericFlow.MsecReceived, tTime) +
-
-		fmt.Sprintf("  In Packets : %d\n", flowRecord.genericFlow.InPackets) +
-		fmt.Sprintf("  In Bytes   : %d\n", flowRecord.genericFlow.InBytes) +
-		fmt.Sprintf("  Proto      : %d\n", flowRecord.genericFlow.Proto) +
-		fmt.Sprintf("  SrcPort    : %d\n", flowRecord.genericFlow.SrcPort) +
-		fmt.Sprintf("  DstPort    : %d\n", flowRecord.genericFlow.DstPort) +
-		fmt.Sprintf("  TcpFlags   : 0x%x %s\n", flowRecord.genericFlow.TcpFlags, flagsString(uint16(flowRecord.genericFlow.TcpFlags))) +
-		fmt.Sprintf("  FwdStatus  : %d\n", flowRecord.genericFlow.FwdStatus) +
-		fmt.Sprintf("  SrcTos     : %d\n", flowRecord.genericFlow.SrcTos)
-	return s
+// Return misc extension
+func (flowRecord *FlowRecordV3) AsRouting() *EXasRouting {
+	offset := flowRecord.extOffset[EXasRoutingID]
+	if offset == 0 {
+		return nil
+	}
+	asRouting := (*EXasRouting)(unsafe.Pointer(&flowRecord.rawRecord[offset]))
+	return asRouting
 }
 
 func AllRecords(nfFile *nffile.NfFile) (chan *FlowRecordV3, error) {
@@ -239,13 +152,13 @@ func AllRecords(nfFile *nffile.NfFile) (chan *FlowRecordV3, error) {
 	go func() {
 		blockChannel, _ := nfFile.ReadDataBlocks()
 		for dataBlock := range blockChannel {
-			fmt.Printf("Next block - type: %d, records: %d\n", dataBlock.Header.Type, dataBlock.Header.NumRecords)
+			// fmt.Printf("Next block - type: %d, records: %d\n", dataBlock.Header.Type, dataBlock.Header.NumRecords)
 			offset := 0
 			for i := 0; i < int(dataBlock.Header.NumRecords); i++ {
 				//recordType := binary.LittleEndian.Uint16(dataBlock.Data[offset : offset+2])
 				recordSize := binary.LittleEndian.Uint16(dataBlock.Data[offset+2 : offset+4])
-				//numElements := binary.LittleEndian.Uint16(dataBlock.Data[offset+4 : offset+6])
-				// fmt.Printf("Record %d type: %d, length: %d, numElements: %d\n", i, recordType, recordSize, numElements)
+				//numElementS := binary.LittleEndian.Uint16(dataBlock.Data[offset+4 : offset+6])
+				// fmt.Printf("Record %d type: %d, length: %d, numElementS: %d\n", i, recordType, recordSize, numElementS)
 				recordChannel <- New(dataBlock.Data[offset : offset+int(recordSize)])
 				offset += int(recordSize)
 			}
