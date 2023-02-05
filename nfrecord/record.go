@@ -52,7 +52,7 @@ type FlowRecordV3 struct {
 	extOffset    [MAXEXTENSIONS]int
 }
 
-// Extract next flow record
+// Extract next flow record from []byte stream
 func New(record []byte) *FlowRecordV3 {
 
 	offset := 0
@@ -103,7 +103,7 @@ func (flowRecord *FlowRecordV3) GenericFlow() *EXgenericFlow {
 	return genericFlow
 }
 
-// Return IP record
+// Return IP extension IPv4 or IPv6
 func (flowRecord *FlowRecordV3) IP() *EXip {
 	return &EXip{flowRecord.srcIP, flowRecord.dstIP}
 }
@@ -118,7 +118,7 @@ func (flowRecord *FlowRecordV3) FlowMisc() *EXflowMisc {
 	return flowMisc
 }
 
-// Return misc extension
+// Return out counter extension
 func (flowRecord *FlowRecordV3) CntFlow() *EXcntFlow {
 	offset := flowRecord.extOffset[EXcntFlowID]
 	if offset == 0 {
@@ -128,7 +128,7 @@ func (flowRecord *FlowRecordV3) CntFlow() *EXcntFlow {
 	return cntFlow
 }
 
-// Return misc extension
+// Return vlan extension
 func (flowRecord *FlowRecordV3) VLan() *EXvLan {
 	offset := flowRecord.extOffset[EXvLanID]
 	if offset == 0 {
@@ -138,7 +138,7 @@ func (flowRecord *FlowRecordV3) VLan() *EXvLan {
 	return vlan
 }
 
-// Return misc extension
+// Return asRouting extension
 func (flowRecord *FlowRecordV3) AsRouting() *EXasRouting {
 	offset := flowRecord.extOffset[EXasRoutingID]
 	if offset == 0 {
@@ -148,6 +148,9 @@ func (flowRecord *FlowRecordV3) AsRouting() *EXasRouting {
 	return asRouting
 }
 
+// AllRecord takes an NfFile object and returns a channel of FlowRecordV3
+// it reads and uncompresses the data blocks with ReadDataBlocks
+// Iterating over the channel reads all flow records
 func AllRecords(nfFile *nffile.NfFile) (chan *FlowRecordV3, error) {
 	recordChannel := make(chan *FlowRecordV3, 32)
 	go func() {

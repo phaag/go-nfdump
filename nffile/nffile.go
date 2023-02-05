@@ -125,10 +125,13 @@ type StatRecord struct {
 const TYPE_IDENT = 0x8001
 const TYPE_STAT = 0x8002
 
+// New returns a new empty NfFile object
 func New() *NfFile {
 	return new(NfFile)
 }
 
+// print %v string function
+// if an NfFile object is printed String() is called
 func (nfFile *NfFile) String() string {
 	s := fmt.Sprintf("Magic          :  0x%x\n", nfFile.Header.Magic) +
 		fmt.Sprintf("Version        :  %d\n", nfFile.Header.Version) +
@@ -146,6 +149,8 @@ func (nfFile *NfFile) String() string {
 	return s
 }
 
+// readAppendix reads the NfFile appendix if available and updates
+// the NfFile object
 func (nfFile *NfFile) readAppendix() error {
 
 	currentPos, err := nfFile.file.Seek(0, io.SeekCurrent)
@@ -201,6 +206,7 @@ func (nfFile *NfFile) readAppendix() error {
 	return nil
 }
 
+// Open opens an nffile given as string argument
 func (nfFile *NfFile) Open(fileName string) error {
 
 	file, err := os.Open(fileName)
@@ -232,19 +238,24 @@ func (nfFile *NfFile) Open(fileName string) error {
 	// unreached
 }
 
+// Closes the current underlaying file
 func (nfFile *NfFile) Close() error {
 	nfFile.file.Close()
 	return nil
 }
 
+// Ident returns the identifier of the current NfFile object
 func (nfFile *NfFile) Ident() string {
 	return nfFile.ident
 }
 
+// Stat returns the stat record of the current NfFile object
 func (nfFile *NfFile) Stat() StatRecord {
 	return nfFile.StatRecord
 }
 
+// ReadDataBlocks iterates over the underlaying file and decompresses the data blocks
+// A channel with all uncompressed data blocks is returned.
 func (nfFile *NfFile) ReadDataBlocks() (chan DataBlock, error) {
 	blockChannel := make(chan DataBlock, 16)
 	go func() {
