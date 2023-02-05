@@ -15,8 +15,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	""github.com/phaag/go-nfdump/nffile"
-	""github.com/phaag/go-nfdump/nfrecord"
+	"github.com/phaag/go-nfdump/nffile"
+	"github.com/phaag/go-nfdump/nfrecord"
 	"os"
 )
 
