@@ -1,16 +1,8 @@
-# go-nfdump
-
-[![Go Reference](https://pkg.go.dev/badge/github.com/phaag/go-nfdump.svg)](https://pkg.go.dev/github.com/phaag/go-nfdump)
-
-This Go module allows to read and process files created by [nfdump](https://github.com/phaag/nfdump), the netflow/ipfix/sflow collector and processing tools.
-
-This module is experimental and does not yet decode all available nfdump record extensions. It reads and processes only nfdump v2 files, which are created by nfdump-1.7.x. Files created with nfdump-1.6.x are recogized but skipped for decoding.
-
-Expample to read and process a flow file:
-
-
-
-```go
+// Copyright © 2023 Peter Haag peter@people.ops-trust.net
+// All rights reserved.
+//
+// Use of this source code is governed by the license that can be
+// found in the LICENSE file.
 
 package main
 
@@ -76,14 +68,3 @@ func main() {
 		*/
 	}
 }
-```
-
-The `defs.go` file includes nfdump's `nfxV3.h` header file to convert individual record extensions into appropriate Golang records. So far the generic, misc, flowCount, vlan and asRouting extensions as well as IPv4/IPv6 addresses are available through the interface. See the nfxV3.go file for its definitions.
-
-If you modify the `defs.go` file, generate `nfxV3.go` use the go command
-
-`go generate ./...`
-
-Please note, that the interface may be subject to change, as this module is work in progress.
-
-More element data blocks will follow, including the famous nfdump filter engine.

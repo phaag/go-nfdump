@@ -1,42 +1,17 @@
 //go:generate sh -c "go tool cgo -godefs defs.go >nfxV3.go"
 
-/*
- *  Copyright (c) 2023, Peter Haag
- *  All rights reserved.
- *
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions are met:
- *
- *   * Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above copyright notice,
- *     this list of conditions and the following disclaimer in the documentation
- *     and/or other materials provided with the distribution.
- *   * Neither the name of the author nor the names of its contributors may be
- *     used to endorse or promote products derived from this software without
- *     specific prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- *  POSSIBILITY OF SUCH DAMAGE.
- */
+// Copyright © 2023 Peter Haag peter@people.ops-trust.net
+// All rights reserved.
+//
+// Use of this source code is governed by the license that can be
+// found in the LICENSE file.
 
-package nfrecord
+package nfdump
 
 import (
 	"encoding/binary"
 	"net"
 	"unsafe"
-
-	"github.com/phaag/go-nfdump/nffile"
 )
 
 type EXip struct {
@@ -53,7 +28,7 @@ type FlowRecordV3 struct {
 }
 
 // Extract next flow record from []byte stream
-func New(record []byte) *FlowRecordV3 {
+func NewRecord(record []byte) *FlowRecordV3 {
 
 	offset := 0
 	recordType := binary.LittleEndian.Uint16(record[offset : offset+2])
@@ -151,7 +126,7 @@ func (flowRecord *FlowRecordV3) AsRouting() *EXasRouting {
 // AllRecord takes an NfFile object and returns a channel of FlowRecordV3
 // it reads and uncompresses the data blocks with ReadDataBlocks
 // Iterating over the channel reads all flow records
-func AllRecords(nfFile *nffile.NfFile) (chan *FlowRecordV3, error) {
+func AllRecords(nfFile *NfFile) (chan *FlowRecordV3, error) {
 	recordChannel := make(chan *FlowRecordV3, 32)
 	go func() {
 		blockChannel, _ := nfFile.ReadDataBlocks()
@@ -163,7 +138,7 @@ func AllRecords(nfFile *nffile.NfFile) (chan *FlowRecordV3, error) {
 				recordSize := binary.LittleEndian.Uint16(dataBlock.Data[offset+2 : offset+4])
 				//numElementS := binary.LittleEndian.Uint16(dataBlock.Data[offset+4 : offset+6])
 				// fmt.Printf("Record %d type: %d, length: %d, numElementS: %d\n", i, recordType, recordSize, numElementS)
-				recordChannel <- New(dataBlock.Data[offset : offset+int(recordSize)])
+				recordChannel <- NewRecord(dataBlock.Data[offset : offset+int(recordSize)])
 				offset += int(recordSize)
 			}
 		}
