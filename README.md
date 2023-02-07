@@ -1,6 +1,7 @@
 # go-nfdump
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/phaag/go-nfdump.svg)](https://pkg.go.dev/github.com/phaag/go-nfdump)
+[![Go Report Card](https://goreportcard.com/badge/github.com/phaag/go-nfdump)](https://goreportcard.com/report/github.com/phaag/go-nfdump)
 
 This Go module allows to read and process files created by [nfdump](https://github.com/phaag/nfdump), the netflow/ipfix/sflow collector and processing tools.
 
