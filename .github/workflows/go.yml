@@ -4,25 +4,30 @@
 name: Go
 
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    push:
+        branches: ["main"]
+    pull_request:
+        branches: ["main"]
 
 jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3
 
-  build:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
+            - name: Set up Go
+              uses: actions/setup-go@v3
+              with:
+                  go-version: 1.19
 
-    - name: Set up Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: 1.19
+            - name: Install dependencies
+              run: |
+                  go get .
+                  go get github.com/pierrec/lz4/v4 v4.1.14
+                  go get github.com/rasky/go-lzo v0.0.0-20200203143853-96a758eda86e
 
-    - name: Build
-      run: go build -v ./...
+            - name: Build
+              run: go build -v ./...
 
-    - name: Test
-      run: go test -v ./...
+            - name: Test
+              run: go test -v ./...
