@@ -122,27 +122,3 @@ func (flowRecord *FlowRecordV3) AsRouting() *EXasRouting {
 	asRouting := (*EXasRouting)(unsafe.Pointer(&flowRecord.rawRecord[offset]))
 	return asRouting
 }
-
-// AllRecord takes an NfFile object and returns a channel of FlowRecordV3
-// it reads and uncompresses the data blocks with ReadDataBlocks
-// Iterating over the channel reads all flow records
-func AllRecords(nfFile *NfFile) (chan *FlowRecordV3, error) {
-	recordChannel := make(chan *FlowRecordV3, 32)
-	go func() {
-		blockChannel, _ := nfFile.ReadDataBlocks()
-		for dataBlock := range blockChannel {
-			// fmt.Printf("Next block - type: %d, records: %d\n", dataBlock.Header.Type, dataBlock.Header.NumRecords)
-			offset := 0
-			for i := 0; i < int(dataBlock.Header.NumRecords); i++ {
-				//recordType := binary.LittleEndian.Uint16(dataBlock.Data[offset : offset+2])
-				recordSize := binary.LittleEndian.Uint16(dataBlock.Data[offset+2 : offset+4])
-				//numElementS := binary.LittleEndian.Uint16(dataBlock.Data[offset+4 : offset+6])
-				// fmt.Printf("Record %d type: %d, length: %d, numElementS: %d\n", i, recordType, recordSize, numElementS)
-				recordChannel <- NewRecord(dataBlock.Data[offset : offset+int(recordSize)])
-				offset += int(recordSize)
-			}
-		}
-		close(recordChannel)
-	}()
-	return recordChannel, nil
-}
