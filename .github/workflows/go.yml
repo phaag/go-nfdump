@@ -26,8 +26,8 @@ jobs:
             - name: Install dependencies
               run: |
                   go get .
-                  go get github.com/pierrec/lz4/v4 v4.1.17
-                  go get github.com/rasky/go-lzo v0.0.0-20200203143853-96a758eda86e
+                  go get github.com/pierrec/lz4/v4 
+                  go get github.com/rasky/go-lzo
 
             - name: Build
               run: go build -v ./...
