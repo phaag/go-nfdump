@@ -15,18 +15,22 @@ package nfdump
 //
 import "C"
 
-const EXnull = uint(C.EXnull)
-const EXgenericFlowID = uint16(C.EXgenericFlowID)
-const EXipv4FlowID = uint16(C.EXipv4FlowID)
-const EXipv6FlowID = uint16(C.EXipv6FlowID)
-const EXflowMiscID = uint16(C.EXflowMiscID)
-const EXcntFlowID = uint16(C.EXcntFlowID)
-const EXvLanID = uint16(C.EXvLanID)
-const EXasRoutingID = uint16(C.EXasRoutingID)
+const (
+	EXnull          = uint(C.EXnull)
+	EXgenericFlowID = uint16(C.EXgenericFlowID)
+	EXipv4FlowID    = uint16(C.EXipv4FlowID)
+	EXipv6FlowID    = uint16(C.EXipv6FlowID)
+	EXflowMiscID    = uint16(C.EXflowMiscID)
+	EXcntFlowID     = uint16(C.EXcntFlowID)
+	EXvLanID        = uint16(C.EXvLanID)
+	EXasRoutingID   = uint16(C.EXasRoutingID)
+)
 
-const V3_FLAG_EVENT = uint(C.V3_FLAG_EVENT)
-const V3_FLAG_SAMPLED = uint(C.V3_FLAG_SAMPLED)
-const V3_FLAG_ANON = uint(C.V3_FLAG_ANON)
+const (
+	V3_FLAG_EVENT   = uint(C.V3_FLAG_EVENT)
+	V3_FLAG_SAMPLED = uint(C.V3_FLAG_SAMPLED)
+	V3_FLAG_ANON    = uint(C.V3_FLAG_ANON)
+)
 
 const V3Record = uint16(C.V3Record)
 
