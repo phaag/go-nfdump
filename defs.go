@@ -32,6 +32,8 @@ const (
 	EXbgpNextHopV6ID = uint16(C.EXbgpNextHopV6ID)
 	EXipNextHopV4ID  = uint16(C.EXipNextHopV4ID)
 	EXipNextHopV6ID  = uint16(C.EXipNextHopV6ID)
+	EXipReceivedV4ID = uint16(C.EXipReceivedV4ID)
+	EXipReceivedV6ID = uint16(C.EXipReceivedV6ID)
 )
 
 const (
@@ -57,5 +59,9 @@ type EXbgpNextHop struct {
 }
 
 type EXipNextHop struct {
+	IP net.IP
+}
+
+type EXipReceived struct {
 	IP net.IP
 }

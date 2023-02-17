@@ -77,8 +77,7 @@ func (flowRecord *FlowRecordV3) String() string {
 	if flowRecord.recordHeader.Flags&uint8(V3_FLAG_ANON) != 0 {
 		recordFlags += " Anon"
 	}
-	var s string = "" +
-		fmt.Sprintf("Flow Record:\n") +
+	var s string = "Flow Record:\n" +
 		fmt.Sprintf("  Flags       : %v %s%s\n", flowRecord.recordHeader.Flags, flowType, recordFlags) +
 		fmt.Sprintf("  Elements    : %v\n", flowRecord.recordHeader.NumElements) +
 		fmt.Sprintf("  Size        : %v\n", flowRecord.recordHeader.Size) +
@@ -95,6 +94,7 @@ func (flowRecord *FlowRecordV3) String() string {
 	s += flowRecord.dumpEXasRouting()
 	s += flowRecord.dumpEXbgpNextHop()
 	s += flowRecord.dumpEXipNextHop()
+	s += flowRecord.dumpEXipReceived()
 
 	return s
 }
@@ -205,4 +205,12 @@ func (flowRecord *FlowRecordV3) dumpEXipNextHop() string {
 		return ""
 	}
 	return fmt.Sprintf("  IP next hop : %v\n", nextHop.IP)
+}
+
+func (flowRecord *FlowRecordV3) dumpEXipReceived() string {
+	var ipReceived *EXipReceived
+	if ipReceived = flowRecord.IpReceived(); ipReceived == nil {
+		return ""
+	}
+	return fmt.Sprintf("  IP received : %v\n", ipReceived.IP)
 }

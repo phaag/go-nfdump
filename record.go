@@ -123,9 +123,9 @@ func (flowRecord *FlowRecordV3) AsRouting() *EXasRouting {
 	return asRouting
 }
 
-// Return bgp next hop IP IPv4 or IPv6
+// Return bgp next hop IPv4 or IPv6
 func (flowRecord *FlowRecordV3) BgpNextHop() *EXbgpNextHop {
-	// IPv6
+	// IPv4
 	offset := flowRecord.extOffset[EXbgpNextHopV4ID]
 	if offset != 0 {
 		raw := flowRecord.rawRecord
@@ -134,7 +134,7 @@ func (flowRecord *FlowRecordV3) BgpNextHop() *EXbgpNextHop {
 		return nextHop
 	}
 
-	// IPv4
+	// IPv6
 	offset = flowRecord.extOffset[EXbgpNextHopV6ID]
 	if offset != 0 {
 		raw := flowRecord.rawRecord
@@ -147,9 +147,9 @@ func (flowRecord *FlowRecordV3) BgpNextHop() *EXbgpNextHop {
 	return nil
 }
 
-// Return IP next hop IP IPv4 or IPv6
+// Return IP next hop IPv4 or IPv6
 func (flowRecord *FlowRecordV3) IpNextHop() *EXipNextHop {
-	// IPv6
+	// IPv4
 	offset := flowRecord.extOffset[EXipNextHopV4ID]
 	if offset != 0 {
 		raw := flowRecord.rawRecord
@@ -158,7 +158,7 @@ func (flowRecord *FlowRecordV3) IpNextHop() *EXipNextHop {
 		return nextHop
 	}
 
-	// IPv4
+	// IPv6
 	offset = flowRecord.extOffset[EXipNextHopV6ID]
 	if offset != 0 {
 		raw := flowRecord.rawRecord
@@ -168,5 +168,29 @@ func (flowRecord *FlowRecordV3) IpNextHop() *EXipNextHop {
 	}
 
 	// no next hop IP
+	return nil
+}
+
+// Return IP received IPv4 or IPv6
+func (flowRecord *FlowRecordV3) IpReceived() *EXipReceived {
+	// IPv4
+	offset := flowRecord.extOffset[EXipReceivedV4ID]
+	if offset != 0 {
+		raw := flowRecord.rawRecord
+		ipReceived := new(EXipReceived)
+		ipReceived.IP = net.IPv4(raw[offset+3], raw[offset+2], raw[offset+1], raw[offset])
+		return ipReceived
+	}
+
+	// IPv6
+	offset = flowRecord.extOffset[EXipReceivedV6ID]
+	if offset != 0 {
+		raw := flowRecord.rawRecord
+		ipReceived := new(EXipReceived)
+		ipReceived.IP = net.IP{raw[offset+7], raw[offset+6], raw[offset+5], raw[offset+4], raw[offset+3], raw[offset+2], raw[offset+1], raw[offset+0], raw[offset+15], raw[offset+14], raw[offset+13], raw[offset+12], raw[offset+11], raw[offset+10], raw[offset+9], raw[offset+8]}
+		return ipReceived
+	}
+
+	// no IP received
 	return nil
 }

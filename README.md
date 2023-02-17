@@ -77,6 +77,7 @@ func main() {
 			asRouting := record.AsRouting()
 			bgpNextHop := record.BgpNextHop()
 			ipNextHop := record.IpNextHop()
+			ipReceived := flowRecord.IpReceived()
 		*/
 	}
 }
