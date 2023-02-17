@@ -75,6 +75,8 @@ func main() {
 			cntFlow := record.CntFlow()
 			vLan := record.VLan()
 			asRouting := record.AsRouting()
+			bgpNextHop := record.BgpNextHop()
+			ipNextHop := record.IpNextHop()
 		*/
 	}
 }

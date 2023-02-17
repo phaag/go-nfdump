@@ -15,15 +15,23 @@ package nfdump
 //
 import "C"
 
+import (
+	"net"
+)
+
 const (
-	EXnull          = uint(C.EXnull)
-	EXgenericFlowID = uint16(C.EXgenericFlowID)
-	EXipv4FlowID    = uint16(C.EXipv4FlowID)
-	EXipv6FlowID    = uint16(C.EXipv6FlowID)
-	EXflowMiscID    = uint16(C.EXflowMiscID)
-	EXcntFlowID     = uint16(C.EXcntFlowID)
-	EXvLanID        = uint16(C.EXvLanID)
-	EXasRoutingID   = uint16(C.EXasRoutingID)
+	EXnull           = uint(C.EXnull)
+	EXgenericFlowID  = uint16(C.EXgenericFlowID)
+	EXipv4FlowID     = uint16(C.EXipv4FlowID)
+	EXipv6FlowID     = uint16(C.EXipv6FlowID)
+	EXflowMiscID     = uint16(C.EXflowMiscID)
+	EXcntFlowID      = uint16(C.EXcntFlowID)
+	EXvLanID         = uint16(C.EXvLanID)
+	EXasRoutingID    = uint16(C.EXasRoutingID)
+	EXbgpNextHopV4ID = uint16(C.EXbgpNextHopV4ID)
+	EXbgpNextHopV6ID = uint16(C.EXbgpNextHopV6ID)
+	EXipNextHopV4ID  = uint16(C.EXipNextHopV4ID)
+	EXipNextHopV6ID  = uint16(C.EXipNextHopV6ID)
 )
 
 const (
@@ -43,3 +51,11 @@ type EXflowMisc C.struct_EXflowMisc_s
 type EXcntFlow C.struct_EXcntFlow_s
 type EXvLan C.struct_EXvLan_s
 type EXasRouting C.struct_EXasRouting_s
+
+type EXbgpNextHop struct {
+	IP net.IP
+}
+
+type EXipNextHop struct {
+	IP net.IP
+}

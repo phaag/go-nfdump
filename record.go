@@ -122,3 +122,51 @@ func (flowRecord *FlowRecordV3) AsRouting() *EXasRouting {
 	asRouting := (*EXasRouting)(unsafe.Pointer(&flowRecord.rawRecord[offset]))
 	return asRouting
 }
+
+// Return bgp next hop IP IPv4 or IPv6
+func (flowRecord *FlowRecordV3) BgpNextHop() *EXbgpNextHop {
+	// IPv6
+	offset := flowRecord.extOffset[EXbgpNextHopV4ID]
+	if offset != 0 {
+		raw := flowRecord.rawRecord
+		nextHop := new(EXbgpNextHop)
+		nextHop.IP = net.IPv4(raw[offset+3], raw[offset+2], raw[offset+1], raw[offset])
+		return nextHop
+	}
+
+	// IPv4
+	offset = flowRecord.extOffset[EXbgpNextHopV6ID]
+	if offset != 0 {
+		raw := flowRecord.rawRecord
+		nextHop := new(EXbgpNextHop)
+		nextHop.IP = net.IP{raw[offset+7], raw[offset+6], raw[offset+5], raw[offset+4], raw[offset+3], raw[offset+2], raw[offset+1], raw[offset+0], raw[offset+15], raw[offset+14], raw[offset+13], raw[offset+12], raw[offset+11], raw[offset+10], raw[offset+9], raw[offset+8]}
+		return nextHop
+	}
+
+	// no next hop IP
+	return nil
+}
+
+// Return IP next hop IP IPv4 or IPv6
+func (flowRecord *FlowRecordV3) IpNextHop() *EXipNextHop {
+	// IPv6
+	offset := flowRecord.extOffset[EXipNextHopV4ID]
+	if offset != 0 {
+		raw := flowRecord.rawRecord
+		nextHop := new(EXipNextHop)
+		nextHop.IP = net.IPv4(raw[offset+3], raw[offset+2], raw[offset+1], raw[offset])
+		return nextHop
+	}
+
+	// IPv4
+	offset = flowRecord.extOffset[EXipNextHopV6ID]
+	if offset != 0 {
+		raw := flowRecord.rawRecord
+		nextHop := new(EXipNextHop)
+		nextHop.IP = net.IP{raw[offset+7], raw[offset+6], raw[offset+5], raw[offset+4], raw[offset+3], raw[offset+2], raw[offset+1], raw[offset+0], raw[offset+15], raw[offset+14], raw[offset+13], raw[offset+12], raw[offset+11], raw[offset+10], raw[offset+9], raw[offset+8]}
+		return nextHop
+	}
+
+	// no next hop IP
+	return nil
+}

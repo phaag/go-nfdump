@@ -3,15 +3,23 @@
 
 package nfdump
 
+import (
+	"net"
+)
+
 const (
-	EXnull		= uint(0x0)
-	EXgenericFlowID	= uint16(0x1)
-	EXipv4FlowID	= uint16(0x2)
-	EXipv6FlowID	= uint16(0x3)
-	EXflowMiscID	= uint16(0x4)
-	EXcntFlowID	= uint16(0x5)
-	EXvLanID	= uint16(0x6)
-	EXasRoutingID	= uint16(0x7)
+	EXnull			= uint(0x0)
+	EXgenericFlowID		= uint16(0x1)
+	EXipv4FlowID		= uint16(0x2)
+	EXipv6FlowID		= uint16(0x3)
+	EXflowMiscID		= uint16(0x4)
+	EXcntFlowID		= uint16(0x5)
+	EXvLanID		= uint16(0x6)
+	EXasRoutingID		= uint16(0x7)
+	EXbgpNextHopV4ID	= uint16(0x8)
+	EXbgpNextHopV6ID	= uint16(0x9)
+	EXipNextHopV4ID		= uint16(0xa)
+	EXipNextHopV6ID		= uint16(0xb)
 )
 
 const (
@@ -72,4 +80,12 @@ type EXvLan struct {
 type EXasRouting struct {
 	SrcAS	uint32
 	DstAS	uint32
+}
+
+type EXbgpNextHop struct {
+	IP net.IP
+}
+
+type EXipNextHop struct {
+	IP net.IP
 }

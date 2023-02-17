@@ -93,6 +93,8 @@ func (flowRecord *FlowRecordV3) String() string {
 	s += flowRecord.dumpEXcntFlow()
 	s += flowRecord.dumpEXvLan()
 	s += flowRecord.dumpEXasRouting()
+	s += flowRecord.dumpEXbgpNextHop()
+	s += flowRecord.dumpEXipNextHop()
 
 	return s
 }
@@ -187,4 +189,20 @@ func (flowRecord *FlowRecordV3) dumpEXasRouting() string {
 		fmt.Sprintf("  Dst AS      : %d\n", asRouting.DstAS)
 
 	return s
+}
+
+func (flowRecord *FlowRecordV3) dumpEXbgpNextHop() string {
+	var nextHop *EXbgpNextHop
+	if nextHop = flowRecord.BgpNextHop(); nextHop == nil {
+		return ""
+	}
+	return fmt.Sprintf("  Bgp next hop: %v\n", nextHop.IP)
+}
+
+func (flowRecord *FlowRecordV3) dumpEXipNextHop() string {
+	var nextHop *EXipNextHop
+	if nextHop = flowRecord.IpNextHop(); nextHop == nil {
+		return ""
+	}
+	return fmt.Sprintf("  IP next hop : %v\n", nextHop.IP)
 }
