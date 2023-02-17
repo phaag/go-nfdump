@@ -271,7 +271,9 @@ func (nfFile *NfFile) AllRecords() (chan *FlowRecordV3, error) {
 				recordSize := binary.LittleEndian.Uint16(dataBlock.Data[offset+2 : offset+4])
 				//numElementS := binary.LittleEndian.Uint16(dataBlock.Data[offset+4 : offset+6])
 				// fmt.Printf("Record %d type: %d, length: %d, numElementS: %d\n", i, recordType, recordSize, numElementS)
-				recordChannel <- NewRecord(dataBlock.Data[offset : offset+int(recordSize)])
+				if record := NewRecord(dataBlock.Data[offset : offset+int(recordSize)]); record != nil {
+					recordChannel <- record
+				}
 				offset += int(recordSize)
 			}
 		}
