@@ -24,6 +24,8 @@ type FlowRecordV3 struct {
 	recordHeader *recordHeaderV3
 	srcIP        net.IP
 	dstIP        net.IP
+	isV4         bool
+	isV6         bool
 	extOffset    [MAXEXTENSIONS]int
 }
 
@@ -58,9 +60,11 @@ func NewRecord(record []byte) *FlowRecordV3 {
 		case EXipv4FlowID:
 			flowRecord.srcIP = net.IPv4(raw[exOffset+3], raw[exOffset+2], raw[exOffset+1], raw[exOffset])
 			flowRecord.dstIP = net.IPv4(raw[exOffset+7], raw[exOffset+6], raw[exOffset+5], raw[exOffset+4])
+			flowRecord.isV4 = true
 		case EXipv6FlowID:
 			flowRecord.srcIP = net.IP{raw[exOffset+7], raw[exOffset+6], raw[exOffset+5], raw[exOffset+4], raw[exOffset+3], raw[exOffset+2], raw[exOffset+1], raw[exOffset+0], raw[exOffset+15], raw[exOffset+14], raw[exOffset+13], raw[exOffset+12], raw[exOffset+11], raw[exOffset+10], raw[exOffset+9], raw[exOffset+8]}
 			flowRecord.dstIP = net.IP{raw[exOffset+23], raw[exOffset+22], raw[exOffset+21], raw[exOffset+20], raw[exOffset+19], raw[exOffset+18], raw[exOffset+17], raw[exOffset+16], raw[exOffset+31], raw[exOffset+30], raw[exOffset+29], raw[exOffset+28], raw[exOffset+27], raw[exOffset+26], raw[exOffset+25], raw[exOffset+24]}
+			flowRecord.isV6 = true
 		}
 		offset += int(elementSize)
 	}
@@ -81,6 +85,16 @@ func (flowRecord *FlowRecordV3) GenericFlow() *EXgenericFlow {
 // Return IP extension IPv4 or IPv6
 func (flowRecord *FlowRecordV3) IP() *EXip {
 	return &EXip{flowRecord.srcIP, flowRecord.dstIP}
+}
+
+// Return true, if record is a IPv4 flow
+func (flowRecord *FlowRecordV3) IsIPv4() bool {
+	return flowRecord.isV4
+}
+
+// Return true, if record is a IPv4 flow
+func (flowRecord *FlowRecordV3) IsIPv6() bool {
+	return flowRecord.isV6
 }
 
 // Return misc extension

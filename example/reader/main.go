@@ -48,7 +48,14 @@ func main() {
 	cnt := 0
 	for record := range recordChannel {
 		cnt++
-		fmt.Printf("record: %d\n%v\n", cnt, record)
+		if record.IsIPv4() {
+			fmt.Printf("Record %d is IPv4\n", cnt)
+		} else if record.IsIPv6() {
+			fmt.Printf("Record %d is IPv6\n", cnt)
+		} else {
+			fmt.Printf("Record %d has no IPs\n", cnt)
+		}
+		fmt.Printf("%v\n", record)
 		genericFlow := record.GenericFlow()
 		if genericFlow != nil {
 			fmt.Printf("SrcPort: %d\n", genericFlow.SrcPort)
