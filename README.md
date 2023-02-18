@@ -71,14 +71,14 @@ func main() {
 		// print the entire record using %v
 		fmt.Printf("%v\n", record)
 
-		// get generic record and print ports
+		// get generic extension and print ports
 		// see nfxV3.go for all fields in genericFlow
 		if genericFlow := record.GenericFlow(); genericFlow != nil {
 			fmt.Printf("SrcPort: %d\n", genericFlow.SrcPort)
 			fmt.Printf("DstPort: %d\n", genericFlow.DstPort)
 		}
 
-		// get src, dst ip addresses of record
+		// get src, dst ip address extension of record
 		// can contain IPv4 or IPv6
 		ipAddr := record.IP()
 		if ipAddr != nil {
@@ -109,6 +109,8 @@ The `defs.go` file includes nfdump's `nfxV3.h` header file to convert individual
 If you modify the `defs.go` file, generate `nfxV3.go` use the go command
 
 `go generate ./...`
+
+All available extensions are visible in `nfxV3.go`. 
 
 Please note, that the interface may be subject to change, as this module is work in progress.
 

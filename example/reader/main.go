@@ -61,14 +61,14 @@ func main() {
 		// print the entire record using %v
 		fmt.Printf("%v\n", record)
 
-		// get generic record and print ports
+		// get generic extension and print ports
 		// see nfxV3.go for all fields in genericFlow
 		if genericFlow := record.GenericFlow(); genericFlow != nil {
 			fmt.Printf("SrcPort: %d\n", genericFlow.SrcPort)
 			fmt.Printf("DstPort: %d\n", genericFlow.DstPort)
 		}
 
-		// get src, dst ip addresses of record
+		// get src, dst ip address extension of record
 		// can contain IPv4 or IPv6
 		ipAddr := record.IP()
 		if ipAddr != nil {
