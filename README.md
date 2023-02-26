@@ -102,7 +102,7 @@ func main() {
 		*/
 	}
   
-  // retrieve exporter list *after* all records are processed
+	// retrieve exporter list *after* all records are processed
 	exporterList := nffile.GetExporterList()
 	fmt.Printf("Exporter list:\n")
 	for id, exporter := range exporterList {
