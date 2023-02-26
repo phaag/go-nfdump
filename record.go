@@ -208,3 +208,28 @@ func (flowRecord *FlowRecordV3) IpReceived() *EXipReceived {
 	// no IP received
 	return nil
 }
+
+// get sampler info for flow record
+func (flowRecord *FlowRecordV3) SamplerInfo(nfFile *NfFile) (packetInterval int, spaceInterval int) {
+
+	// default values - no sampling
+	packetInterval = 1
+	spaceInterval = 0
+
+	maxExporterID := len(nfFile.ExporterList)
+	exporterID := flowRecord.recordHeader.ExporterID
+
+	if exporterID >= uint16(maxExporterID) || nfFile.ExporterList[exporterID].IP == nil {
+		return
+	}
+
+	exporter := nfFile.ExporterList[exporterID]
+
+	// samplers are added in sequence and may overwrite previous samplers
+	// the last in chain is currently valid
+	for _, sampler := range exporter.SamplerList {
+		packetInterval = int(sampler.PacketInterval)
+		spaceInterval = int(sampler.SpaceInterval)
+	}
+	return
+}

@@ -58,6 +58,10 @@ func main() {
 			fmt.Printf("Record %d has no IPs\n", cnt)
 		}
 
+		// sampling
+		packetInterval, spaceInterval := record.SamplerInfo(nffile)
+		fmt.Printf("Record sampler info: packet interval: %d, space interval: %d\n", packetInterval, spaceInterval)
+
 		// print the entire record using %v
 		fmt.Printf("%v\n", record)
 
@@ -99,6 +103,10 @@ func main() {
 		if exporter.IP != nil && id == int(exporter.SysId) { // valid exporter
 			fmt.Printf("  SysID: %d, ID: %d, IP: %v, version: %d", exporter.SysId, exporter.Id, exporter.IP, exporter.Version)
 			fmt.Printf(" Sequence failures: %d, packets: %d, flows: %d\n", exporter.SequenceFailures, exporter.Packets, exporter.Flows)
+			for _, sampler := range exporter.SamplerList {
+				fmt.Printf("  Sampler: id: %d, algorithm: %d, packet interval: %d, space interval: %d\n",
+					sampler.Id, sampler.Algorithm, sampler.PacketInterval, sampler.SpaceInterval)
+			}
 		}
 	}
 }

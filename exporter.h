@@ -79,4 +79,20 @@ typedef struct exporter_stats_record_s {
 
 } exporter_stats_record_t;
 
+typedef struct sampler_record_s {
+    // record header
+    uint16_t type;
+    uint16_t size;
+
+    // sampler data
+    uint16_t exporter_sysid;  // internal reference to exporter
+    uint16_t algorithm;       // #304 sampling algorithm
+    int64_t id;               // #302 id assigned by the exporting device or
+#define SAMPLER_OVERWRITE -3
+#define SAMPLER_DEFAULT -2
+#define SAMPLER_GENERIC -1
+    uint32_t packetInterval;  // #305 packet interval
+    uint32_t spaceInterval;   // #306 packet space
+} sampler_record_t;
+
 #endif

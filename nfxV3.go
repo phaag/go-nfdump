@@ -111,3 +111,12 @@ type ExporterInfoRecord struct {
 	Sysid	uint16
 	Id	uint32
 }
+type SamplerRecord struct {
+	Type		uint16
+	Size		uint16
+	Sysid		uint16
+	Algorithm	uint16
+	Id		int64
+	PacketInterval	uint32
+	SpaceInterval	uint32
+}

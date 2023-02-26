@@ -74,3 +74,4 @@ type EXipReceived struct {
 }
 
 type ExporterInfoRecord C.struct_exporter_info_record_s
+type SamplerRecord C.struct_sampler_record_s

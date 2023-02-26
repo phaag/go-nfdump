@@ -15,6 +15,13 @@ import (
 	"unsafe"
 )
 
+type Sampler struct {
+	Id             int64
+	Algorithm      uint16
+	PacketInterval uint32
+	SpaceInterval  uint32
+}
+
 type Exporter struct {
 	IP               net.IP // IP address
 	isV4             bool
@@ -25,6 +32,7 @@ type Exporter struct {
 	Packets          uint64 // number of packets sent by this exporter
 	Flows            uint64 // number of flow records sent by this exporter
 	SequenceFailures uint32 // number of sequence failures
+	SamplerList      []Sampler
 }
 
 const MaxExporters = 256
@@ -84,6 +92,21 @@ func (nfFile *NfFile) addExporterStat(record []byte) {
 }
 
 func (nfFile *NfFile) addSampler(record []byte) {
+	samplerInfo := (*SamplerRecord)(unsafe.Pointer(&record[0]))
+
+	maxExporterID := len(nfFile.ExporterList)
+	if samplerInfo.Sysid >= uint16(maxExporterID) || nfFile.ExporterList[samplerInfo.Sysid].IP == nil {
+		// no valid exporter avilable
+		fmt.Printf("No valid exporter for new sampler\n")
+		return
+	}
+
+	nfFile.ExporterList[samplerInfo.Sysid].SamplerList = append(nfFile.ExporterList[samplerInfo.Sysid].SamplerList, Sampler{
+		Id:             samplerInfo.Id,
+		Algorithm:      samplerInfo.Algorithm,
+		PacketInterval: samplerInfo.PacketInterval,
+		SpaceInterval:  samplerInfo.SpaceInterval,
+	})
 
 }
 

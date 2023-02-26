@@ -68,6 +68,11 @@ func main() {
 			fmt.Printf("Record %d has no IPs\n", cnt)
 		}
 
+		// sampling
+ 		packetInterval, spaceInterval := record.SamplerInfo(nffile)
+		fmt.Printf("Record sampler info: packet interval: %d, space interval: %d\n",
+               packetInterval, spaceInterval)
+    
 		// print the entire record using %v
 		fmt.Printf("%v\n", record)
 
