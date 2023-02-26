@@ -43,9 +43,13 @@ const (
 	V3_FLAG_ANON    = uint(C.V3_FLAG_ANON)
 )
 
-const V3Record = uint16(C.V3Record)
-const ExporterInfoRecordType = uint16(C.ExporterInfoRecordType)
-const ExporterStatRecordType = uint16(C.ExporterStatRecordType)
+const (
+	V3Record                = uint16(C.V3Record)
+	ExporterInfoRecordType  = uint16(C.ExporterInfoRecordType)
+	ExporterStatRecordType  = uint16(C.ExporterStatRecordType)
+	SamplerLegacyRecordType = uint16(C.SamplerLegacyRecordType)
+	SamplerRecordType       = uint16(C.SamplerRecordType)
+)
 
 const MAXEXTENSIONS = uint16(C.MAXEXTENSIONS)
 

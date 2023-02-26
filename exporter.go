@@ -61,10 +61,10 @@ func (nfFile *NfFile) addExporterInfo(record []byte) {
 
 func (nfFile *NfFile) addExporterStat(record []byte) {
 	offset := 0
-	recordType := binary.LittleEndian.Uint16(record[offset : offset+2])
-	recordSize := binary.LittleEndian.Uint16(record[offset+2 : offset+4])
+	// recordType := binary.LittleEndian.Uint16(record[offset : offset+2])
+	// recordSize := binary.LittleEndian.Uint16(record[offset+2 : offset+4])
 	numStat := binary.LittleEndian.Uint16(record[offset+4 : offset+8])
-	fmt.Printf("ExporterStat: type: %d, size: %d, numStats: %d\n", recordType, recordSize, numStat)
+	// 	fmt.Printf("ExporterStat: type: %d, size: %d, numStats: %d\n", recordType, recordSize, numStat)
 
 	offset = 8
 	for i := 0; i < int(numStat); i++ {
@@ -81,6 +81,9 @@ func (nfFile *NfFile) addExporterStat(record []byte) {
 			fmt.Printf("Unknown Exporter id: %d\n", sysId)
 		}
 	}
+}
+
+func (nfFile *NfFile) addSampler(record []byte) {
 
 }
 

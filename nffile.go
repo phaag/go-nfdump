@@ -271,8 +271,8 @@ func (nfFile *NfFile) AllRecords() (chan *FlowRecordV3, error) {
 			for i := 0; i < int(dataBlock.Header.NumRecords); i++ {
 				recordType := binary.LittleEndian.Uint16(dataBlock.Data[offset : offset+2])
 				recordSize := binary.LittleEndian.Uint16(dataBlock.Data[offset+2 : offset+4])
-				numElementS := binary.LittleEndian.Uint16(dataBlock.Data[offset+4 : offset+6])
-				fmt.Printf("Record %d type: %d, length: %d, numElementS: %d\n", i, recordType, recordSize, numElementS)
+				// numElementS := binary.LittleEndian.Uint16(dataBlock.Data[offset+4 : offset+6])
+				// fmt.Printf("Record %d type: %d, length: %d, numElementS: %d\n", i, recordType, recordSize, numElementS)
 				switch recordType {
 				case V3Record:
 					if record := NewRecord(dataBlock.Data[offset : offset+int(recordSize)]); record != nil {
@@ -282,7 +282,12 @@ func (nfFile *NfFile) AllRecords() (chan *FlowRecordV3, error) {
 					nfFile.addExporterInfo(dataBlock.Data[offset : offset+int(recordSize)])
 				case ExporterStatRecordType:
 					nfFile.addExporterStat(dataBlock.Data[offset : offset+int(recordSize)])
+				case SamplerLegacyRecordType:
+					// not processed for now
+				case SamplerRecordType:
+					nfFile.addSampler(dataBlock.Data[offset : offset+int(recordSize)])
 				}
+
 				offset += int(recordSize)
 			}
 		}
