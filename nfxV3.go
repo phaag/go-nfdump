@@ -31,6 +31,8 @@ const (
 )
 
 const V3Record = uint16(0xb)
+const ExporterInfoRecordType = uint16(0x7)
+const ExporterStatRecordType = uint16(0x8)
 
 const MAXEXTENSIONS = uint16(0x26)
 
@@ -94,4 +96,14 @@ type EXipNextHop struct {
 
 type EXipReceived struct {
 	IP net.IP
+}
+
+type ExporterInfoRecord struct {
+	Type	uint16
+	Size	uint16
+	Version	uint32
+	Ip	[2]uint64
+	Family	uint16
+	Sysid	uint16
+	Id	uint32
 }

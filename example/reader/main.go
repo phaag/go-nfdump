@@ -91,4 +91,14 @@ func main() {
 			ipNextHop := record.IpNextHop()
 		*/
 	}
+
+	// retrieve exporter list *after* all records are processed
+	exporterList := nffile.GetExporterList()
+	fmt.Printf("Exporter list:\n")
+	for id, exporter := range exporterList {
+		if exporter.IP != nil && id == int(exporter.SysId) { // valid exporter
+			fmt.Printf("  SysID: %d, ID: %d, IP: %v, version: %d", exporter.SysId, exporter.Id, exporter.IP, exporter.Version)
+			fmt.Printf(" Sequence failures: %d, packets: %d, flows: %d\n", exporter.SequenceFailures, exporter.Packets, exporter.Flows)
+		}
+	}
 }

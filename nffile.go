@@ -16,10 +16,11 @@ import (
 )
 
 type NfFile struct {
-	file       *os.File
-	Header     NfFileHeader
-	ident      string
-	StatRecord StatRecord
+	file         *os.File
+	Header       NfFileHeader
+	ident        string
+	StatRecord   StatRecord
+	ExporterList []Exporter
 }
 
 const NOT_COMPRESSED = 0
@@ -202,6 +203,7 @@ func (nfFile *NfFile) Open(fileName string) error {
 		return fmt.Errorf("nfFile read header, bad magic : 0x%x", nfFile.Header.Magic)
 	}
 
+	nfFile.ExporterList = make([]Exporter, 8)
 	nfFile.file = file
 	switch nfFile.Header.Version {
 	case 1:
@@ -267,12 +269,19 @@ func (nfFile *NfFile) AllRecords() (chan *FlowRecordV3, error) {
 			// fmt.Printf("Next block - type: %d, records: %d\n", dataBlock.Header.Type, dataBlock.Header.NumRecords)
 			offset := 0
 			for i := 0; i < int(dataBlock.Header.NumRecords); i++ {
-				//recordType := binary.LittleEndian.Uint16(dataBlock.Data[offset : offset+2])
+				recordType := binary.LittleEndian.Uint16(dataBlock.Data[offset : offset+2])
 				recordSize := binary.LittleEndian.Uint16(dataBlock.Data[offset+2 : offset+4])
-				//numElementS := binary.LittleEndian.Uint16(dataBlock.Data[offset+4 : offset+6])
-				// fmt.Printf("Record %d type: %d, length: %d, numElementS: %d\n", i, recordType, recordSize, numElementS)
-				if record := NewRecord(dataBlock.Data[offset : offset+int(recordSize)]); record != nil {
-					recordChannel <- record
+				numElementS := binary.LittleEndian.Uint16(dataBlock.Data[offset+4 : offset+6])
+				fmt.Printf("Record %d type: %d, length: %d, numElementS: %d\n", i, recordType, recordSize, numElementS)
+				switch recordType {
+				case V3Record:
+					if record := NewRecord(dataBlock.Data[offset : offset+int(recordSize)]); record != nil {
+						recordChannel <- record
+					}
+				case ExporterInfoRecordType:
+					nfFile.addExporterInfo(dataBlock.Data[offset : offset+int(recordSize)])
+				case ExporterStatRecordType:
+					nfFile.addExporterStat(dataBlock.Data[offset : offset+int(recordSize)])
 				}
 				offset += int(recordSize)
 			}

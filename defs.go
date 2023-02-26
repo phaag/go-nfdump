@@ -12,6 +12,7 @@ package nfdump
 //#include <stdint.h>
 //#include "nfxV3.h"
 //#include "id.h"
+//#include "exporter.h"
 //
 import "C"
 
@@ -43,6 +44,8 @@ const (
 )
 
 const V3Record = uint16(C.V3Record)
+const ExporterInfoRecordType = uint16(C.ExporterInfoRecordType)
+const ExporterStatRecordType = uint16(C.ExporterStatRecordType)
 
 const MAXEXTENSIONS = uint16(C.MAXEXTENSIONS)
 
@@ -65,3 +68,5 @@ type EXipNextHop struct {
 type EXipReceived struct {
 	IP net.IP
 }
+
+type ExporterInfoRecord C.struct_exporter_info_record_s
