@@ -35,6 +35,7 @@ const (
 	EXipNextHopV6ID  = uint16(C.EXipNextHopV6ID)
 	EXipReceivedV4ID = uint16(C.EXipReceivedV4ID)
 	EXipReceivedV6ID = uint16(C.EXipReceivedV6ID)
+	EXsamplerInfoID  = uint16(C.EXsamplerInfoID)
 )
 
 const (
@@ -60,6 +61,7 @@ type EXflowMisc C.struct_EXflowMisc_s
 type EXcntFlow C.struct_EXcntFlow_s
 type EXvLan C.struct_EXvLan_s
 type EXasRouting C.struct_EXasRouting_s
+type EXsamplerInfo C.struct_EXsamplerInfo_s
 
 type EXbgpNextHop struct {
 	IP net.IP

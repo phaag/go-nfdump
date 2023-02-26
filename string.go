@@ -88,6 +88,7 @@ func (flowRecord *FlowRecordV3) String() string {
 
 	s += flowRecord.dumpEXgenericFlow()
 	s += fmt.Sprintf("  SrcIP       : %v\n  DstIP       : %v\n", flowRecord.srcIP, flowRecord.dstIP)
+	s += flowRecord.dumpEXsampling()
 	s += flowRecord.dumpEXflowMisc()
 	s += flowRecord.dumpEXcntFlow()
 	s += flowRecord.dumpEXvLan()
@@ -119,7 +120,6 @@ func (flowRecord *FlowRecordV3) dumpEXgenericFlow() string {
 		tcpFlags = 0
 	}
 	s += fmt.Sprintf("  Received    : %d %v\n", genericFlow.MsecReceived, tTime) +
-
 		fmt.Sprintf("  In Packets  : %d\n", genericFlow.InPackets) +
 		fmt.Sprintf("  In Bytes    : %d\n", genericFlow.InBytes) +
 		fmt.Sprintf("  Proto       : %d\n", genericFlow.Proto) +
@@ -129,6 +129,19 @@ func (flowRecord *FlowRecordV3) dumpEXgenericFlow() string {
 		fmt.Sprintf("  FwdStatus   : %d\n", genericFlow.FwdStatus) +
 		fmt.Sprintf("  SrcTos      : %d\n", genericFlow.SrcTos)
 	return s
+}
+
+func (flowRecord *FlowRecordV3) dumpEXsampling() string {
+
+	var sampling *EXsamplerInfo
+	if sampling = flowRecord.Sampling(); sampling != nil {
+
+		var s string = fmt.Sprintf("  SamplingID  : %d\n", sampling.SelectorID) +
+			fmt.Sprintf("  ExporterID  : %d\n", sampling.Sysid)
+		return s
+	} else {
+		return ""
+	}
 }
 
 func (flowRecord *FlowRecordV3) dumpEXflowMisc() string {

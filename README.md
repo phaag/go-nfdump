@@ -104,6 +104,10 @@ func main() {
 			asRouting := record.AsRouting()
 			bgpNextHop := record.BgpNextHop()
 			ipNextHop := record.IpNextHop()
+			
+			// please note, sampling contains only references to exporter list
+			// use record.SamplerInfo(nffile) to retrieve true sampling values
+			sampling := record.Sampling()
 		*/
 	}
   

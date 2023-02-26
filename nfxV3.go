@@ -22,6 +22,7 @@ const (
 	EXipNextHopV6ID		= uint16(0xb)
 	EXipReceivedV4ID	= uint16(0xc)
 	EXipReceivedV6ID	= uint16(0xd)
+	EXsamplerInfoID		= uint16(0x12)
 )
 
 const (
@@ -88,6 +89,12 @@ type EXvLan struct {
 type EXasRouting struct {
 	SrcAS	uint32
 	DstAS	uint32
+}
+type EXsamplerInfo struct {
+	SelectorID	uint64
+	Sysid		uint16
+	Align		uint16
+	Pad_cgo_0	[4]byte
 }
 
 type EXbgpNextHop struct {

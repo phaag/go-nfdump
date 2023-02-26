@@ -209,6 +209,17 @@ func (flowRecord *FlowRecordV3) IpReceived() *EXipReceived {
 	return nil
 }
 
+// Return bgp next hop IPv4 or IPv6
+func (flowRecord *FlowRecordV3) Sampling() *EXsamplerInfo {
+
+	offset := flowRecord.extOffset[EXsamplerInfoID]
+	if offset == 0 {
+		return nil
+	}
+	samplerInfo := (*EXsamplerInfo)(unsafe.Pointer(&flowRecord.rawRecord[offset]))
+	return samplerInfo
+}
+
 // get sampler info for flow record
 func (flowRecord *FlowRecordV3) SamplerInfo(nfFile *NfFile) (packetInterval int, spaceInterval int) {
 
@@ -216,9 +227,15 @@ func (flowRecord *FlowRecordV3) SamplerInfo(nfFile *NfFile) (packetInterval int,
 	packetInterval = 1
 	spaceInterval = 0
 
-	maxExporterID := len(nfFile.ExporterList)
-	exporterID := flowRecord.recordHeader.ExporterID
+	var sampling *EXsamplerInfo
+	var exporterID uint16
+	if sampling = flowRecord.Sampling(); sampling != nil {
+		exporterID = sampling.Sysid
+	} else {
+		exporterID = flowRecord.recordHeader.ExporterID
+	}
 
+	maxExporterID := len(nfFile.ExporterList)
 	if exporterID >= uint16(maxExporterID) || nfFile.ExporterList[exporterID].IP == nil {
 		return
 	}
@@ -228,8 +245,16 @@ func (flowRecord *FlowRecordV3) SamplerInfo(nfFile *NfFile) (packetInterval int,
 	// samplers are added in sequence and may overwrite previous samplers
 	// the last in chain is currently valid
 	for _, sampler := range exporter.SamplerList {
-		packetInterval = int(sampler.PacketInterval)
-		spaceInterval = int(sampler.SpaceInterval)
+		if sampling != nil {
+			if sampling.SelectorID == uint64(sampler.Id) {
+				packetInterval = int(sampler.PacketInterval)
+				spaceInterval = int(sampler.SpaceInterval)
+			}
+		} else {
+			packetInterval = int(sampler.PacketInterval)
+			spaceInterval = int(sampler.SpaceInterval)
+		}
 	}
+
 	return
 }
