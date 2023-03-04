@@ -276,6 +276,7 @@ func (nfFile *NfFile) AllRecords() (chan *FlowRecordV3, error) {
 				switch recordType {
 				case V3Record:
 					if record := NewRecord(dataBlock.Data[offset : offset+int(recordSize)]); record != nil {
+						record.GetSamplerInfo(nfFile)
 						recordChannel <- record
 					}
 				case ExporterInfoRecordType:

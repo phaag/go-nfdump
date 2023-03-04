@@ -20,13 +20,15 @@ type EXip struct {
 }
 
 type FlowRecordV3 struct {
-	rawRecord    []byte
-	recordHeader *recordHeaderV3
-	srcIP        net.IP
-	dstIP        net.IP
-	isV4         bool
-	isV6         bool
-	extOffset    [MAXEXTENSIONS]int
+	rawRecord      []byte
+	recordHeader   *recordHeaderV3
+	srcIP          net.IP
+	dstIP          net.IP
+	isV4           bool
+	isV6           bool
+	packetInterval int
+	spaceInterval  int
+	extOffset      [MAXEXTENSIONS]int
 }
 
 // Extract next flow record from []byte stream
@@ -68,6 +70,9 @@ func NewRecord(record []byte) *FlowRecordV3 {
 		}
 		offset += int(elementSize)
 	}
+
+	flowRecord.packetInterval = 1
+	flowRecord.spaceInterval = 0
 
 	return flowRecord
 }
@@ -221,11 +226,11 @@ func (flowRecord *FlowRecordV3) Sampling() *EXsamplerInfo {
 }
 
 // get sampler info for flow record
-func (flowRecord *FlowRecordV3) SamplerInfo(nfFile *NfFile) (packetInterval int, spaceInterval int) {
+func (flowRecord *FlowRecordV3) SamplerInfo(nfFile *NfFile) (int, int) {
+	return flowRecord.packetInterval, flowRecord.spaceInterval
+}
 
-	// default values - no sampling
-	packetInterval = 1
-	spaceInterval = 0
+func (flowRecord *FlowRecordV3) GetSamplerInfo(nfFile *NfFile) {
 
 	var sampling *EXsamplerInfo
 	var exporterID uint16
@@ -247,12 +252,12 @@ func (flowRecord *FlowRecordV3) SamplerInfo(nfFile *NfFile) (packetInterval int,
 	for _, sampler := range exporter.SamplerList {
 		if sampling != nil {
 			if sampling.SelectorID == uint64(sampler.Id) {
-				packetInterval = int(sampler.PacketInterval)
-				spaceInterval = int(sampler.SpaceInterval)
+				flowRecord.packetInterval = int(sampler.PacketInterval)
+				flowRecord.spaceInterval = int(sampler.SpaceInterval)
 			}
 		} else {
-			packetInterval = int(sampler.PacketInterval)
-			spaceInterval = int(sampler.SpaceInterval)
+			flowRecord.packetInterval = int(sampler.PacketInterval)
+			flowRecord.spaceInterval = int(sampler.SpaceInterval)
 		}
 	}
 
