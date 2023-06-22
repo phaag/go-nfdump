@@ -28,6 +28,8 @@ const LZO_COMPRESSED = 1
 const BZ2_COMPRESSED = 2
 const LZ4_COMPRESSED = 3
 
+const BUFFSIZE = 5 * 1048576
+
 type NfFileHeader struct {
 	Magic       uint16 // magic 0xA50C to recognize nfdump file type and endian type
 	Version     uint16 // version of binary file layout. Valid: version 2
@@ -165,7 +167,7 @@ func (nfFile *NfFile) readAppendix() error {
 			*/
 			switch record.Type {
 			case TYPE_IDENT:
-				ident := make([]byte, record.Size-5) // 5: 4 header + 0 byte
+				ident := make([]byte, record.Size-4) // 4 header
 				binary.Read(b, binary.LittleEndian, &ident)
 				nfFile.ident = string(ident)
 			case TYPE_STAT:
