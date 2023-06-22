@@ -19,6 +19,11 @@ type EXip struct {
 	DstIP net.IP
 }
 
+type elementParam struct {
+	offset int
+	size   int
+}
+
 type FlowRecordV3 struct {
 	rawRecord      []byte
 	recordHeader   *recordHeaderV3
@@ -28,7 +33,7 @@ type FlowRecordV3 struct {
 	isV6           bool
 	packetInterval int
 	spaceInterval  int
-	extOffset      [MAXEXTENSIONS]int
+	extOffset      [MAXEXTENSIONS]elementParam
 }
 
 // Extract next flow record from []byte stream
@@ -56,7 +61,8 @@ func NewRecord(record []byte) *FlowRecordV3 {
 		// fmt.Printf(" . Element type: %d, length: %d\n", elementType, elementSize)
 		exOffset := offset + 4
 		if elementType < MAXEXTENSIONS {
-			flowRecord.extOffset[elementType] = exOffset
+			flowRecord.extOffset[elementType].offset = exOffset
+			flowRecord.extOffset[elementType].size = int(elementSize) - 4
 		}
 		switch elementType {
 		case EXipv4FlowID:
@@ -79,7 +85,7 @@ func NewRecord(record []byte) *FlowRecordV3 {
 
 // Return generic extension
 func (flowRecord *FlowRecordV3) GenericFlow() *EXgenericFlow {
-	offset := flowRecord.extOffset[EXgenericFlowID]
+	offset := flowRecord.extOffset[EXgenericFlowID].offset
 	if offset == 0 {
 		return nil
 	}
@@ -104,7 +110,7 @@ func (flowRecord *FlowRecordV3) IsIPv6() bool {
 
 // Return misc extension
 func (flowRecord *FlowRecordV3) FlowMisc() *EXflowMisc {
-	offset := flowRecord.extOffset[EXflowMiscID]
+	offset := flowRecord.extOffset[EXflowMiscID].offset
 	if offset == 0 {
 		return nil
 	}
@@ -114,7 +120,7 @@ func (flowRecord *FlowRecordV3) FlowMisc() *EXflowMisc {
 
 // Return out counter extension
 func (flowRecord *FlowRecordV3) CntFlow() *EXcntFlow {
-	offset := flowRecord.extOffset[EXcntFlowID]
+	offset := flowRecord.extOffset[EXcntFlowID].offset
 	if offset == 0 {
 		return nil
 	}
@@ -124,7 +130,7 @@ func (flowRecord *FlowRecordV3) CntFlow() *EXcntFlow {
 
 // Return vlan extension
 func (flowRecord *FlowRecordV3) VLan() *EXvLan {
-	offset := flowRecord.extOffset[EXvLanID]
+	offset := flowRecord.extOffset[EXvLanID].offset
 	if offset == 0 {
 		return nil
 	}
@@ -134,7 +140,7 @@ func (flowRecord *FlowRecordV3) VLan() *EXvLan {
 
 // Return asRouting extension
 func (flowRecord *FlowRecordV3) AsRouting() *EXasRouting {
-	offset := flowRecord.extOffset[EXasRoutingID]
+	offset := flowRecord.extOffset[EXasRoutingID].offset
 	if offset == 0 {
 		return nil
 	}
@@ -145,7 +151,7 @@ func (flowRecord *FlowRecordV3) AsRouting() *EXasRouting {
 // Return bgp next hop IPv4 or IPv6
 func (flowRecord *FlowRecordV3) BgpNextHop() *EXbgpNextHop {
 	// IPv4
-	offset := flowRecord.extOffset[EXbgpNextHopV4ID]
+	offset := flowRecord.extOffset[EXbgpNextHopV4ID].offset
 	if offset != 0 {
 		raw := flowRecord.rawRecord
 		nextHop := new(EXbgpNextHop)
@@ -154,7 +160,7 @@ func (flowRecord *FlowRecordV3) BgpNextHop() *EXbgpNextHop {
 	}
 
 	// IPv6
-	offset = flowRecord.extOffset[EXbgpNextHopV6ID]
+	offset = flowRecord.extOffset[EXbgpNextHopV6ID].offset
 	if offset != 0 {
 		raw := flowRecord.rawRecord
 		nextHop := new(EXbgpNextHop)
@@ -169,7 +175,7 @@ func (flowRecord *FlowRecordV3) BgpNextHop() *EXbgpNextHop {
 // Return IP next hop IPv4 or IPv6
 func (flowRecord *FlowRecordV3) IpNextHop() *EXipNextHop {
 	// IPv4
-	offset := flowRecord.extOffset[EXipNextHopV4ID]
+	offset := flowRecord.extOffset[EXipNextHopV4ID].offset
 	if offset != 0 {
 		raw := flowRecord.rawRecord
 		nextHop := new(EXipNextHop)
@@ -178,7 +184,7 @@ func (flowRecord *FlowRecordV3) IpNextHop() *EXipNextHop {
 	}
 
 	// IPv6
-	offset = flowRecord.extOffset[EXipNextHopV6ID]
+	offset = flowRecord.extOffset[EXipNextHopV6ID].offset
 	if offset != 0 {
 		raw := flowRecord.rawRecord
 		nextHop := new(EXipNextHop)
@@ -193,7 +199,7 @@ func (flowRecord *FlowRecordV3) IpNextHop() *EXipNextHop {
 // Return IP received IPv4 or IPv6
 func (flowRecord *FlowRecordV3) IpReceived() *EXipReceived {
 	// IPv4
-	offset := flowRecord.extOffset[EXipReceivedV4ID]
+	offset := flowRecord.extOffset[EXipReceivedV4ID].offset
 	if offset != 0 {
 		raw := flowRecord.rawRecord
 		ipReceived := new(EXipReceived)
@@ -202,7 +208,7 @@ func (flowRecord *FlowRecordV3) IpReceived() *EXipReceived {
 	}
 
 	// IPv6
-	offset = flowRecord.extOffset[EXipReceivedV6ID]
+	offset = flowRecord.extOffset[EXipReceivedV6ID].offset
 	if offset != 0 {
 		raw := flowRecord.rawRecord
 		ipReceived := new(EXipReceived)
@@ -217,12 +223,22 @@ func (flowRecord *FlowRecordV3) IpReceived() *EXipReceived {
 // Return bgp next hop IPv4 or IPv6
 func (flowRecord *FlowRecordV3) Sampling() *EXsamplerInfo {
 
-	offset := flowRecord.extOffset[EXsamplerInfoID]
+	offset := flowRecord.extOffset[EXsamplerInfoID].offset
 	if offset == 0 {
 		return nil
 	}
 	samplerInfo := (*EXsamplerInfo)(unsafe.Pointer(&flowRecord.rawRecord[offset]))
 	return samplerInfo
+}
+
+// Return payload
+func (flowRecord *FlowRecordV3) Payload() EXinPayload {
+	offset := flowRecord.extOffset[EXinPayloadID].offset
+	if offset == 0 {
+		return nil
+	}
+	size := flowRecord.extOffset[EXinPayloadID].size
+	return flowRecord.rawRecord[offset : offset+size]
 }
 
 // get sampler info for flow record

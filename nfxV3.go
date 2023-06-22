@@ -23,6 +23,7 @@ const (
 	EXipReceivedV4ID	= uint16(0xc)
 	EXipReceivedV6ID	= uint16(0xd)
 	EXsamplerInfoID		= uint16(0x12)
+	EXinPayloadID		= uint16(0x1d)
 )
 
 const (
@@ -108,6 +109,8 @@ type EXipNextHop struct {
 type EXipReceived struct {
 	IP net.IP
 }
+
+type EXinPayload []byte
 
 type ExporterInfoRecord struct {
 	Type	uint16

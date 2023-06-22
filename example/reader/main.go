@@ -7,6 +7,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"os"
@@ -81,6 +82,12 @@ func main() {
 			// see Golang standard library net.IP for more details to process IPs
 			fmt.Printf("SrcIP: %v\n", ipAddr.SrcIP)
 			fmt.Printf("DstIP: %v\n", ipAddr.DstIP)
+		}
+
+		// get payload extension
+		if payload := record.Payload(); payload != nil {
+			fmt.Printf("Payload length: %d\n", len(payload))
+			fmt.Printf("%s", hex.Dump(payload))
 		}
 		/*
 			// other extension

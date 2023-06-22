@@ -26,7 +26,7 @@ func (nfFile *NfFile) uncompressBlock(blockHeader *DataBlockHeader) ([]byte, err
 	switch nfFile.Header.Compression {
 	case NOT_COMPRESSED:
 	case LZO_COMPRESSED:
-		out, err := lzo.Decompress1X(bytes.NewReader(dataBlock), int(blockHeader.Size), BUFFSIZE))
+		out, err := lzo.Decompress1X(bytes.NewReader(dataBlock), int(blockHeader.Size), BUFFSIZE)
 		if err != nil {
 			return nil, fmt.Errorf("nfFile uncompress lzo1x-1 data block: %v", err)
 		}
