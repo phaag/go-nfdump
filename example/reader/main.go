@@ -84,6 +84,23 @@ func main() {
 			fmt.Printf("DstIP: %v\n", ipAddr.DstIP)
 		}
 
+		// get xlate ports
+		if xlatePort := record.XlatePort(); xlatePort != nil {
+			fmt.Printf("SrcXlatePort: %d\n", xlatePort.XlateSrcPort)
+			fmt.Printf("DstXlatePort: %d\n", xlatePort.XlateDstPort)
+		}
+
+		// xlateIPs
+		// can contain IPv4 or IPv6
+		xlateIP := record.XlateIP()
+		if xlateIP != nil {
+			// when printing as %v, Golang takes care about proper formating
+			// as IPv4 or IPv6
+			// see Golang standard library net.IP for more details to process IPs
+			fmt.Printf("SrcXlateIP: %v\n", xlateIP.SrcXIP)
+			fmt.Printf("DstXlateIP: %v\n", xlateIP.DstXIP)
+		}
+
 		// get payload extension
 		if payload := record.Payload(); payload != nil {
 			fmt.Printf("Payload length: %d\n", len(payload))

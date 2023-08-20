@@ -24,6 +24,11 @@ type elementParam struct {
 	size   int
 }
 
+type EXXlateip struct {
+	SrcXIP net.IP
+	DstXIP net.IP
+}
+
 type FlowRecordV3 struct {
 	rawRecord      []byte
 	recordHeader   *recordHeaderV3
@@ -31,6 +36,9 @@ type FlowRecordV3 struct {
 	dstIP          net.IP
 	isV4           bool
 	isV6           bool
+	srcXlateIP     net.IP
+	dstXlateIP     net.IP
+	hasXlateIP     bool
 	packetInterval int
 	spaceInterval  int
 	extOffset      [MAXEXTENSIONS]elementParam
@@ -73,6 +81,14 @@ func NewRecord(record []byte) *FlowRecordV3 {
 			flowRecord.srcIP = net.IP{raw[exOffset+7], raw[exOffset+6], raw[exOffset+5], raw[exOffset+4], raw[exOffset+3], raw[exOffset+2], raw[exOffset+1], raw[exOffset+0], raw[exOffset+15], raw[exOffset+14], raw[exOffset+13], raw[exOffset+12], raw[exOffset+11], raw[exOffset+10], raw[exOffset+9], raw[exOffset+8]}
 			flowRecord.dstIP = net.IP{raw[exOffset+23], raw[exOffset+22], raw[exOffset+21], raw[exOffset+20], raw[exOffset+19], raw[exOffset+18], raw[exOffset+17], raw[exOffset+16], raw[exOffset+31], raw[exOffset+30], raw[exOffset+29], raw[exOffset+28], raw[exOffset+27], raw[exOffset+26], raw[exOffset+25], raw[exOffset+24]}
 			flowRecord.isV6 = true
+		case EXnselXlateIPv4ID:
+			flowRecord.srcXlateIP = net.IPv4(raw[exOffset+3], raw[exOffset+2], raw[exOffset+1], raw[exOffset])
+			flowRecord.dstXlateIP = net.IPv4(raw[exOffset+7], raw[exOffset+6], raw[exOffset+5], raw[exOffset+4])
+			flowRecord.hasXlateIP = true
+		case EXnselXlateIPv6ID:
+			flowRecord.srcXlateIP = net.IP{raw[exOffset+7], raw[exOffset+6], raw[exOffset+5], raw[exOffset+4], raw[exOffset+3], raw[exOffset+2], raw[exOffset+1], raw[exOffset+0], raw[exOffset+15], raw[exOffset+14], raw[exOffset+13], raw[exOffset+12], raw[exOffset+11], raw[exOffset+10], raw[exOffset+9], raw[exOffset+8]}
+			flowRecord.dstXlateIP = net.IP{raw[exOffset+23], raw[exOffset+22], raw[exOffset+21], raw[exOffset+20], raw[exOffset+19], raw[exOffset+18], raw[exOffset+17], raw[exOffset+16], raw[exOffset+31], raw[exOffset+30], raw[exOffset+29], raw[exOffset+28], raw[exOffset+27], raw[exOffset+26], raw[exOffset+25], raw[exOffset+24]}
+			flowRecord.hasXlateIP = true
 		}
 		offset += int(elementSize)
 	}
@@ -229,6 +245,21 @@ func (flowRecord *FlowRecordV3) Sampling() *EXsamplerInfo {
 	}
 	samplerInfo := (*EXsamplerInfo)(unsafe.Pointer(&flowRecord.rawRecord[offset]))
 	return samplerInfo
+}
+
+// Return IP extension IPv4 or IPv6
+func (flowRecord *FlowRecordV3) XlateIP() *EXXlateip {
+	return &EXXlateip{flowRecord.srcXlateIP, flowRecord.dstXlateIP}
+}
+
+// Return asRouting extension
+func (flowRecord *FlowRecordV3) XlatePort() *EXnselXlatePort {
+	offset := flowRecord.extOffset[EXnselXlatePortID].offset
+	if offset == 0 {
+		return nil
+	}
+	xlatePort := (*EXnselXlatePort)(unsafe.Pointer(&flowRecord.rawRecord[offset]))
+	return xlatePort
 }
 
 // Return payload

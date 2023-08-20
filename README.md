@@ -93,6 +93,18 @@ func main() {
 			fmt.Printf("SrcIP: %v\n", ipAddr.SrcIP)
 			fmt.Printf("DstIP: %v\n", ipAddr.DstIP)
 		}
+    
+    if flowRecord.hasXlateIP {
+      fmt.Sprintf("  SrcXlateIP  : %v\n", flowRecord.srcXlateIP)
+      fmt.Sprintf("  DstXlateIP  : %v\n", flowRecord.dstXlateIP)
+    }
+    
+    // get xlate ports and print
+    if xlatePort := flowRecord.XlatePort(); xlatePort == nil {
+      fmt.Printf("  Src X-Port  : %d\n", xlatePort.XlateSrcPort)
+      fmt.Printf("  Dst X-Port  : %d\n", xlatePort.XlateDstPort)
+    }
+   
 		/*
 			// other extension
 			// see nfxV3.go for all fields in the respectiv records

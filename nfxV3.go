@@ -24,6 +24,9 @@ const (
 	EXipReceivedV6ID	= uint16(0xd)
 	EXsamplerInfoID		= uint16(0x12)
 	EXinPayloadID		= uint16(0x1d)
+	EXnselXlateIPv4ID	= uint16(0x14)
+	EXnselXlateIPv6ID	= uint16(0x15)
+	EXnselXlatePortID	= uint16(0x16)
 )
 
 const (
@@ -96,6 +99,10 @@ type EXsamplerInfo struct {
 	Sysid		uint16
 	Align		uint16
 	Pad_cgo_0	[4]byte
+}
+type EXnselXlatePort struct {
+	XlateSrcPort	uint16
+	XlateDstPort	uint16
 }
 
 type EXbgpNextHop struct {

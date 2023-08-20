@@ -88,6 +88,10 @@ func (flowRecord *FlowRecordV3) String() string {
 
 	s += flowRecord.dumpEXgenericFlow()
 	s += fmt.Sprintf("  SrcIP       : %v\n  DstIP       : %v\n", flowRecord.srcIP, flowRecord.dstIP)
+	if flowRecord.hasXlateIP {
+		s += fmt.Sprintf("  SrcXlateIP  : %v\n  DstXlateIP  : %v\n", flowRecord.srcXlateIP, flowRecord.dstXlateIP)
+	}
+	s += flowRecord.dumpXlatePort()
 	s += flowRecord.dumpEXsampling()
 	s += flowRecord.dumpEXflowMisc()
 	s += flowRecord.dumpEXcntFlow()
@@ -226,4 +230,17 @@ func (flowRecord *FlowRecordV3) dumpEXipReceived() string {
 		return ""
 	}
 	return fmt.Sprintf("  IP received : %v\n", ipReceived.IP)
+}
+
+func (flowRecord *FlowRecordV3) dumpXlatePort() string {
+	var xlatePort *EXnselXlatePort
+	if xlatePort = flowRecord.XlatePort(); xlatePort == nil {
+		return ""
+	}
+
+	var s string = "" +
+		fmt.Sprintf("  Src X-Port  : %d\n", xlatePort.XlateSrcPort) +
+		fmt.Sprintf("  Dst X-Port  : %d\n", xlatePort.XlateDstPort)
+
+	return s
 }
