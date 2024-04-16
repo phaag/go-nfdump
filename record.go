@@ -10,6 +10,7 @@ package nfdump
 
 import (
 	"encoding/binary"
+	"fmt"
 	"net"
 	"unsafe"
 )
@@ -45,7 +46,7 @@ type FlowRecordV3 struct {
 }
 
 // Extract next flow record from []byte stream
-func NewRecord(record []byte) *FlowRecordV3 {
+func NewRecord(record []byte) (*FlowRecordV3, error) {
 
 	offset := 0
 	recordType := binary.LittleEndian.Uint16(record[offset : offset+2])
@@ -53,7 +54,7 @@ func NewRecord(record []byte) *FlowRecordV3 {
 	numElements := binary.LittleEndian.Uint16(record[offset+4 : offset+6])
 
 	if recordType != V3Record {
-		return nil
+		return nil, fmt.Errorf("Not a v3 record")
 	}
 
 	flowRecord := new(FlowRecordV3)
@@ -64,8 +65,15 @@ func NewRecord(record []byte) *FlowRecordV3 {
 	flowRecord.recordHeader = (*recordHeaderV3)(unsafe.Pointer(&raw[0]))
 	offset = 12
 	for i := 0; i < int(numElements); i++ {
+		// fmt.Printf(" . next Element at offset: %d\n", offset)
+		if (offset + 4) > int(recordSize) {
+			return nil, fmt.Errorf("Record header boundary check error")
+		}
 		elementType := binary.LittleEndian.Uint16(raw[offset : offset+2])
 		elementSize := binary.LittleEndian.Uint16(raw[offset+2 : offset+4])
+		if (offset + int(elementSize)) > int(recordSize) {
+			return nil, fmt.Errorf("Record body boundary check error")
+		}
 		// fmt.Printf(" . Element type: %d, length: %d\n", elementType, elementSize)
 		exOffset := offset + 4
 		if elementType < MAXEXTENSIONS {
@@ -96,7 +104,7 @@ func NewRecord(record []byte) *FlowRecordV3 {
 	flowRecord.packetInterval = 1
 	flowRecord.spaceInterval = 0
 
-	return flowRecord
+	return flowRecord, nil
 }
 
 // Return generic extension

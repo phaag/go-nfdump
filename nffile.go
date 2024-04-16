@@ -267,6 +267,7 @@ func (nfFile *NfFile) AllRecords() (chan *FlowRecordV3, error) {
 	recordChannel := make(chan *FlowRecordV3, 32)
 	go func() {
 		blockChannel, _ := nfFile.ReadDataBlocks()
+		recordCnt := 0
 		for dataBlock := range blockChannel {
 			// fmt.Printf("Next block - type: %d, records: %d\n", dataBlock.Header.Type, dataBlock.Header.NumRecords)
 			offset := 0
@@ -277,9 +278,12 @@ func (nfFile *NfFile) AllRecords() (chan *FlowRecordV3, error) {
 				// fmt.Printf("Record %d type: %d, length: %d, numElementS: %d\n", i, recordType, recordSize, numElementS)
 				switch recordType {
 				case V3Record:
-					if record := NewRecord(dataBlock.Data[offset : offset+int(recordSize)]); record != nil {
+					if record, err := NewRecord(dataBlock.Data[offset : offset+int(recordSize)]); record != nil {
 						record.GetSamplerInfo(nfFile)
 						recordChannel <- record
+						recordCnt++
+					} else {
+						fmt.Fprintf(os.Stderr, "Record %d: decoding error: %v\n", recordCnt, err)
 					}
 				case ExporterInfoRecordType:
 					nfFile.addExporterInfo(dataBlock.Data[offset : offset+int(recordSize)])
