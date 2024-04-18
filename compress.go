@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 
+	zstd "github.com/klauspost/compress/zstd"
 	"github.com/pierrec/lz4/v4"
 	lzo "github.com/rasky/go-lzo"
 )
@@ -51,6 +52,14 @@ func (nfFile *NfFile) uncompressBlock(blockHeader *DataBlockHeader) ([]byte, err
 		out = out[:n]
 		dataBlock = out
 		blockHeader.Size = uint32(n)
+	case ZSTD_COMPRESSED:
+		var decoder, _ = zstd.NewReader(nil, zstd.WithDecoderConcurrency(0))
+		out, err := decoder.DecodeAll(dataBlock, nil)
+		if err != nil {
+			return nil, fmt.Errorf("nfFile uncompress zstd data block: %v", err)
+		}
+		dataBlock = out
+		blockHeader.Size = uint32(len(out))
 	default:
 		return nil, fmt.Errorf("unknown data block compression: %d", nfFile.Header.Compression)
 	}

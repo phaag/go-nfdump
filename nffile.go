@@ -27,6 +27,7 @@ const NOT_COMPRESSED = 0
 const LZO_COMPRESSED = 1
 const BZ2_COMPRESSED = 2
 const LZ4_COMPRESSED = 3
+const ZSTD_COMPRESSED = 4
 
 const BUFFSIZE = 5 * 1048576
 
@@ -40,6 +41,7 @@ type NfFileHeader struct {
 	// LZO_COMPRESSED 1
 	// BZ2_COMPRESSED 2
 	// LZ4_COMPRESSED 3
+	// ZSTD_COMPRESSED 4
 	Encryption uint8 // type of encryption
 	// NOT_ENCRYPTED 0
 	AppendixBlocks uint16 // number of blocks to read from appendix
