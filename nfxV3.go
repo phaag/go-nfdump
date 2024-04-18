@@ -43,7 +43,7 @@ const (
 	SamplerRecordType	= uint16(0xf)
 )
 
-const MAXEXTENSIONS = uint16(0x26)
+const MAXEXTENSIONS = uint16(0x27)
 
 type recordHeaderV3 struct {
 	Type		uint16
@@ -79,7 +79,7 @@ type EXflowMisc struct {
 	BiFlowDir	uint8
 	FlowEndReason	uint8
 	RevTcpFlags	uint8
-	Fill		uint8
+	FragmentFlags	uint8
 }
 type EXcntFlow struct {
 	Flows		uint64
