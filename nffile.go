@@ -271,7 +271,7 @@ func (nfFile *NfFile) AllRecords() (chan *FlowRecordV3, error) {
 		blockChannel, _ := nfFile.ReadDataBlocks()
 		recordCnt := 0
 		for dataBlock := range blockChannel {
-			fmt.Printf("Next block - type: %d, records: %d, size: %d\n", dataBlock.Header.Type, dataBlock.Header.NumRecords, dataBlock.Header.Size)
+			// fmt.Printf("Next block - type: %d, records: %d, size: %d\n", dataBlock.Header.Type, dataBlock.Header.NumRecords, dataBlock.Header.Size)
 			offset := 0
 			for i := 0; i < int(dataBlock.Header.NumRecords); i++ {
 				if uint32(offset) >= dataBlock.Header.Size {
