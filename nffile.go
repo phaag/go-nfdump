@@ -1,4 +1,4 @@
-// Copyright © 2023 Peter Haag peter@people.ops-trust.net
+// Copyright © 2024 Peter Haag peter@people.ops-trust.net
 // All rights reserved.
 //
 // Use of this source code is governed by the license that can be

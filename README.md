@@ -94,16 +94,25 @@ func main() {
 			fmt.Printf("DstIP: %v\n", ipAddr.DstIP)
 		}
     
-    if flowRecord.hasXlateIP {
-      fmt.Sprintf("  SrcXlateIP  : %v\n", flowRecord.srcXlateIP)
-      fmt.Sprintf("  DstXlateIP  : %v\n", flowRecord.dstXlateIP)
+    // get NAT xlate IP adresses
+    if natXlateIP = flowRecord.NatXlateIP(); natXlateIP != nil {
+      fmt.Sprintf("  SrcXlateIP  : %v\n", natXlateIP.SrcXIP)
+      fmt.Sprintf("  DstXlateIP  : %v\n", natXlateIP.DstXIP)
     }
     
-    // get xlate ports and print
-    if xlatePort := flowRecord.XlatePort(); xlatePort == nil {
-      fmt.Printf("  Src X-Port  : %d\n", xlatePort.XlateSrcPort)
-      fmt.Printf("  Dst X-Port  : %d\n", xlatePort.XlateDstPort)
+    // get NAT xlate ports
+    if natXlatePort := flowRecord.NatXlatePort(); natXlatePort == nil {
+      fmt.Printf("  Src X-Port  : %d\n", natXlatePort.XlateSrcPort)
+      fmt.Printf("  Dst X-Port  : %d\n", natXlatePort.XlateDstPort)
     }
+  
+    // get nat port block and print
+    if natPortBlock := flowRecord.NatPortBlock(); natPortBlock == nil {
+      fmt.Printf("  NAT pstart  : %d\n", natPortBlock.BlockStart)
+			fmt.Printf("  NAT pend    : %d\n", natPortBlock.BlockEnd)
+			fmt.Printf("  NAT pstep   : %d\n", natPortBlock.BlockStep)
+			fmt.Printf("  NAT psize   : %d\n", natPortBlock.BlockSize)
+		}
    
 		/*
 			// other extension

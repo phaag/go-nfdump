@@ -24,9 +24,11 @@ const (
 	EXipReceivedV6ID	= uint16(0xd)
 	EXsamplerInfoID		= uint16(0x12)
 	EXinPayloadID		= uint16(0x1d)
-	EXnselXlateIPv4ID	= uint16(0x14)
-	EXnselXlateIPv6ID	= uint16(0x15)
-	EXnselXlatePortID	= uint16(0x16)
+	EXnatXlateIPv4ID	= uint16(0x14)
+	EXnatXlateIPv6ID	= uint16(0x15)
+	EXnatXlatePortID	= uint16(0x16)
+	EXnatCommonID		= uint16(0x19)
+	EXnatPortBlockID	= uint16(0x1a)
 )
 
 const (
@@ -100,9 +102,22 @@ type EXsamplerInfo struct {
 	Align		uint16
 	Pad_cgo_0	[4]byte
 }
-type EXnselXlatePort struct {
+type EXnatXlatePort struct {
 	XlateSrcPort	uint16
 	XlateDstPort	uint16
+}
+type EXnatCommon struct {
+	MsecEvent	uint64
+	NatPoolID	uint32
+	NatEvent	uint8
+	Fill1		uint8
+	Fill2		uint16
+}
+type EXnatPortBlock struct {
+	BlockStart	uint16
+	BlockEnd	uint16
+	BlockStep	uint16
+	BlockSize	uint16
 }
 
 type EXbgpNextHop struct {
@@ -115,6 +130,11 @@ type EXipNextHop struct {
 
 type EXipReceived struct {
 	IP net.IP
+}
+
+type EXnatXlateIP struct {
+	SrcXIP	net.IP
+	DstXIP	net.IP
 }
 
 type EXinPayload []byte

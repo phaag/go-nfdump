@@ -1,4 +1,4 @@
-// Copyright © 2023 Peter Haag peter@people.ops-trust.net
+// Copyright © 2024 Peter Haag peter@people.ops-trust.net
 // All rights reserved.
 //
 // Use of this source code is governed by the license that can be
@@ -88,10 +88,7 @@ func (flowRecord *FlowRecordV3) String() string {
 
 	s += flowRecord.dumpEXgenericFlow()
 	s += fmt.Sprintf("  SrcIP       : %v\n  DstIP       : %v\n", flowRecord.srcIP, flowRecord.dstIP)
-	if flowRecord.hasXlateIP {
-		s += fmt.Sprintf("  SrcXlateIP  : %v\n  DstXlateIP  : %v\n", flowRecord.srcXlateIP, flowRecord.dstXlateIP)
-	}
-	s += flowRecord.dumpXlatePort()
+
 	s += flowRecord.dumpEXsampling()
 	s += flowRecord.dumpEXflowMisc()
 	s += flowRecord.dumpEXcntFlow()
@@ -99,6 +96,10 @@ func (flowRecord *FlowRecordV3) String() string {
 	s += flowRecord.dumpEXasRouting()
 	s += flowRecord.dumpEXbgpNextHop()
 	s += flowRecord.dumpEXipNextHop()
+	s += flowRecord.dumpEXnatCommon()
+	s += flowRecord.dumpEXnatXlateIP()
+	s += flowRecord.dumpEXnatXlatePort()
+	s += flowRecord.dumpEXnatPortBlock()
 	s += flowRecord.dumpEXipReceived()
 
 	return s
@@ -224,23 +225,67 @@ func (flowRecord *FlowRecordV3) dumpEXipNextHop() string {
 	return fmt.Sprintf("  IP next hop : %v\n", nextHop.IP)
 }
 
+func (flowRecord *FlowRecordV3) dumpEXnatXlateIP() string {
+	var natXlateIP = flowRecord.NatXlateIP()
+	if !flowRecord.hasXlateIP {
+		return ""
+	}
+
+	var s string = "" +
+		// when printing as %v, Golang takes care about proper formating
+		// as IPv4 or IPv6
+		// see Golang standard library net.IP for more details to process IPs
+		fmt.Sprintf("  NAT Src X-IP: %v\n", natXlateIP.SrcXIP) +
+		fmt.Sprintf("  NAT Dst X-IP: %v\n", natXlateIP.DstXIP)
+
+	return s
+}
+
+func (flowRecord *FlowRecordV3) dumpEXnatXlatePort() string {
+	var xlatePort *EXnatXlatePort
+	if xlatePort = flowRecord.NatXlatePort(); xlatePort == nil {
+		return ""
+	}
+	var s string = "" +
+		fmt.Sprintf("  NAT SrcXPort: %d\n", xlatePort.XlateSrcPort) +
+		fmt.Sprintf("  NAT DstXPort: %d\n", xlatePort.XlateDstPort)
+
+	return s
+}
+
+func (flowRecord *FlowRecordV3) dumpEXnatCommon() string {
+	var natCommon *EXnatCommon
+	if natCommon = flowRecord.NatCommon(); natCommon == nil {
+		return ""
+	}
+
+	var s string = "" +
+		fmt.Sprintf("  NAT Event   : %d\n", natCommon.NatEvent) +
+		fmt.Sprintf("  NAT PoolID  : %d\n", natCommon.NatPoolID)
+
+	return s
+}
+
+func (flowRecord *FlowRecordV3) dumpEXnatPortBlock() string {
+	var natPortBlock *EXnatPortBlock
+	if natPortBlock = flowRecord.NatPortBlock(); natPortBlock == nil {
+		return ""
+	}
+
+	fmt.Printf("Dump NAT PORT\n")
+	var s string = "" +
+		fmt.Sprintf("  NAT pstart  : %d\n", natPortBlock.BlockStart) +
+		fmt.Sprintf("  NAT pend    : %d\n", natPortBlock.BlockEnd) +
+		fmt.Sprintf("  NAT pstep   : %d\n", natPortBlock.BlockStep) +
+		fmt.Sprintf("  NAT psize   : %d\n", natPortBlock.BlockSize)
+
+	return s
+}
+
 func (flowRecord *FlowRecordV3) dumpEXipReceived() string {
 	var ipReceived *EXipReceived
 	if ipReceived = flowRecord.IpReceived(); ipReceived == nil {
 		return ""
 	}
 	return fmt.Sprintf("  IP received : %v\n", ipReceived.IP)
-}
-
-func (flowRecord *FlowRecordV3) dumpXlatePort() string {
-	var xlatePort *EXnselXlatePort
-	if xlatePort = flowRecord.XlatePort(); xlatePort == nil {
-		return ""
-	}
-
-	var s string = "" +
-		fmt.Sprintf("  Src X-Port  : %d\n", xlatePort.XlateSrcPort) +
-		fmt.Sprintf("  Dst X-Port  : %d\n", xlatePort.XlateDstPort)
-
-	return s
 }
