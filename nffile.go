@@ -271,9 +271,13 @@ func (nfFile *NfFile) AllRecords() (chan *FlowRecordV3, error) {
 		blockChannel, _ := nfFile.ReadDataBlocks()
 		recordCnt := 0
 		for dataBlock := range blockChannel {
-			// fmt.Printf("Next block - type: %d, records: %d\n", dataBlock.Header.Type, dataBlock.Header.NumRecords)
+			fmt.Printf("Next block - type: %d, records: %d, size: %d\n", dataBlock.Header.Type, dataBlock.Header.NumRecords, dataBlock.Header.Size)
 			offset := 0
 			for i := 0; i < int(dataBlock.Header.NumRecords); i++ {
+				if uint32(offset) >= dataBlock.Header.Size {
+					fmt.Fprintf(os.Stderr, "DataBlock error: count: %d, size: %d. Found: %d, size: %d\n", dataBlock.Header.NumRecords, dataBlock.Header.Size, i, offset)
+					break
+				}
 				recordType := binary.LittleEndian.Uint16(dataBlock.Data[offset : offset+2])
 				recordSize := binary.LittleEndian.Uint16(dataBlock.Data[offset+2 : offset+4])
 				// numElementS := binary.LittleEndian.Uint16(dataBlock.Data[offset+4 : offset+6])
