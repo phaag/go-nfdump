@@ -45,7 +45,7 @@ func main() {
 	fmt.Printf("nffile:\n%v", nffile)
 
 	// Dump flow records
-	recordChannel, _ := nffile.AllRecords()
+	recordChannel, _ := nffile.AllRecords().Get()
 	cnt := 0
 	for record := range recordChannel {
 		cnt++

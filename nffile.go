@@ -265,7 +265,8 @@ func (nfFile *NfFile) ReadDataBlocks() (chan DataBlock, error) {
 // AllRecord takes an NfFile object and returns a channel of FlowRecordV3
 // it reads and uncompresses the data blocks with ReadDataBlocks
 // Iterating over the channel reads all flow records
-func (nfFile *NfFile) AllRecords() (chan *FlowRecordV3, error) {
+// returns a record chain type
+func (nfFile *NfFile) AllRecords() *RecordChain {
 	recordChannel := make(chan *FlowRecordV3, 32)
 	go func() {
 		blockChannel, _ := nfFile.ReadDataBlocks()
@@ -306,5 +307,9 @@ func (nfFile *NfFile) AllRecords() (chan *FlowRecordV3, error) {
 		}
 		close(recordChannel)
 	}()
-	return recordChannel, nil
+
+	chain := new(RecordChain)
+	chain.recordChan = recordChannel
+	chain.err = nil
+	return chain
 }

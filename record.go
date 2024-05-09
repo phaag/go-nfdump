@@ -40,7 +40,18 @@ type FlowRecordV3 struct {
 	extOffset      [MAXEXTENSIONS]elementParam
 }
 
-// Extract next flow record from []byte stream
+// type to return/accept in the flow processing record chain
+type RecordChain struct {
+	recordChan chan *FlowRecordV3
+	err        error
+}
+
+// at the end of flow processing return a channel of all records
+func (recordChain *RecordChain) Get() (chan *FlowRecordV3, error) {
+	return recordChain.recordChan, recordChain.err
+}
+
+// Extract the next flow record from []byte stream
 func NewRecord(record []byte) (*FlowRecordV3, error) {
 
 	offset := 0
