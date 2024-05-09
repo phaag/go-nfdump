@@ -12,14 +12,22 @@ import (
 	"github.com/twotwotwo/sorts"
 )
 
+// sort record
+// contains value to be sorted and index into the record array with the flow record.
+// keeping the flow record separate, is more CPU cache friendly, as only a sortRecord
+// needs to be moved in memory
 type sortRecord struct {
 	index uint32
 	value uint64
 }
 
+// the sort slice type for sorting
 type sortType []sortRecord
 
+// the slice for all sort record, to be sorted
 var sortArray []sortRecord
+
+// the static record array is just filled and never moved
 var recordArray []*FlowRecordV3
 
 // sort direction ASCENDING
@@ -40,13 +48,13 @@ func (a sortType) Key(i int) uint64 {
 	return a[i].value
 }
 
-// compare tw values for less
+// compare two values for less
 func (a sortType) Less(i, j int) bool {
 	return a[i].value < a[j].value
 }
 
 // value functions
-// return appropriate values
+// return appropriate values to be sorted
 type valueFuncType func(record *FlowRecordV3) uint64
 
 // tstart in msec
@@ -91,7 +99,7 @@ type orderOption struct {
 	orderFunc valueFuncType
 }
 
-// list all possible orderBy options
+// table with all possible orderBy options currently implemented
 var orderTable = []orderOption{
 	orderOption{"tstart", getTstart},
 	orderOption{"tend", getTend},
@@ -99,20 +107,24 @@ var orderTable = []orderOption{
 	orderOption{"bytes", getBytes},
 }
 
-// function used recordChain as input, sort the records by orderBy
-// accepts and orderBy, defined in the order table as name
-// direction is einer ASCENDING or DESCENDING
+// function, which uses recordChain as input
+//   - sorts the records by orderBy
+//   - accepts orderBy as defined in the order table
+//   - accpets direction as either ASCENDING or DESCENDING
+//
 // returns chain element with channel of sorted records
 func (recordChain *RecordChain) OrderBy(orderBy string, direction int) *RecordChain {
-	// propagate error
+	// propagate error, if input void
 	if recordChain.err != nil {
 		return &RecordChain{recordChan: nil, err: recordChain.err}
 	}
 
+	// get appropriate value function
 	var valueFunc valueFuncType
 	for i := 0; i < len(orderTable); i++ {
 		if orderBy == orderTable[i].name {
 			valueFunc = orderTable[i].orderFunc
+			break
 		}
 	}
 
@@ -120,19 +132,22 @@ func (recordChain *RecordChain) OrderBy(orderBy string, direction int) *RecordCh
 		return &RecordChain{recordChan: nil, err: fmt.Errorf("Unknown orderBy: %s", orderBy)}
 	}
 
-	writeChan := make(chan *FlowRecordV3, 64)
+	// write the sorted records to this channel
+	writeChan := make(chan *FlowRecordV3, 128)
 
 	// store all flow records into an array for later printing
+	// initial len - 1 meg
 	recordArray = make([]*FlowRecordV3, 1024*1024)
 
 	// store value to be sorted and index of appropriate flow record of
-	// recordArray. Keeps sortArray smaller - cache friendly
+	// recordArray. initial len - 1 meg
 	sortArray = make([]sortRecord, 1024*1024)
 
+	// fire off goroutine
 	go func(readChan chan *FlowRecordV3) {
 
 		var arrayLen = len(sortArray)
-		// use direct access [cnt] to slice to speed up instead of append()
+		// use direct access ..[cnt] to slice to speed up instead of append()
 		// increase array if needed
 		var cnt uint32 = 0
 		for record := range readChan {
@@ -145,6 +160,8 @@ func (recordChain *RecordChain) OrderBy(orderBy string, direction int) *RecordCh
 				// so use actual len
 				arrayLen = len(sortArray)
 			}
+
+			// calculate sort value and assign values
 			recordArray[cnt] = record
 			value := valueFunc(record)
 			sortArray[cnt] = sortRecord{cnt, value}
@@ -172,5 +189,7 @@ func (recordChain *RecordChain) OrderBy(orderBy string, direction int) *RecordCh
 
 	}(recordChain.recordChan)
 
+	// return chain element
 	return &RecordChain{recordChan: writeChan, err: nil}
+
 } // End of OrderBy
