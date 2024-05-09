@@ -46,12 +46,17 @@ type RecordChain struct {
 	err        error
 }
 
-// at the end of flow processing return a channel of all records
+// function to terminate processing chain
+// - takes the record chain object as input
+//
+// returns a flow record chanel
 func (recordChain *RecordChain) Get() (chan *FlowRecordV3, error) {
 	return recordChain.recordChan, recordChain.err
 }
 
-// Extract the next flow record from []byte stream
+// function to convert a byte stream from file into a *FlowRecordV3
+// - take a byte stream as input
+// returns a *FlowRecordV3 or an error
 func NewRecord(record []byte) (*FlowRecordV3, error) {
 
 	offset := 0
@@ -113,7 +118,7 @@ func NewRecord(record []byte) (*FlowRecordV3, error) {
 	return flowRecord, nil
 }
 
-// Return generic extension
+// Returns the generic extension from the *FlowRecordV3 object
 func (flowRecord *FlowRecordV3) GenericFlow() *EXgenericFlow {
 	offset := flowRecord.extOffset[EXgenericFlowID].offset
 	if offset == 0 {
@@ -123,22 +128,22 @@ func (flowRecord *FlowRecordV3) GenericFlow() *EXgenericFlow {
 	return genericFlow
 }
 
-// Return IP extension IPv4 or IPv6
+// Returns the IP extension IPv4 or IPv6 from the *FlowRecordV3 object
 func (flowRecord *FlowRecordV3) IP() *EXip {
 	return &EXip{flowRecord.srcIP, flowRecord.dstIP}
 }
 
-// Return true, if record is a IPv4 flow
+// Returns true, if record is a IPv4 flow
 func (flowRecord *FlowRecordV3) IsIPv4() bool {
 	return flowRecord.isV4
 }
 
-// Return true, if record is a IPv4 flow
+// Returns true, if record is a IPv4 flow
 func (flowRecord *FlowRecordV3) IsIPv6() bool {
 	return flowRecord.isV6
 }
 
-// Return misc extension
+// Returns the misc extension from the *FlowRecordV3 object
 func (flowRecord *FlowRecordV3) FlowMisc() *EXflowMisc {
 	offset := flowRecord.extOffset[EXflowMiscID].offset
 	if offset == 0 {
@@ -148,7 +153,7 @@ func (flowRecord *FlowRecordV3) FlowMisc() *EXflowMisc {
 	return flowMisc
 }
 
-// Return out counter extension
+// Returns the counter extension from the *FlowRecordV3 object
 func (flowRecord *FlowRecordV3) CntFlow() *EXcntFlow {
 	offset := flowRecord.extOffset[EXcntFlowID].offset
 	if offset == 0 {
@@ -158,7 +163,7 @@ func (flowRecord *FlowRecordV3) CntFlow() *EXcntFlow {
 	return cntFlow
 }
 
-// Return vlan extension
+// Returns the vlan extension from the *FlowRecordV3 object
 func (flowRecord *FlowRecordV3) VLan() *EXvLan {
 	offset := flowRecord.extOffset[EXvLanID].offset
 	if offset == 0 {
@@ -168,7 +173,7 @@ func (flowRecord *FlowRecordV3) VLan() *EXvLan {
 	return vlan
 }
 
-// Return asRouting extension
+// Returns the asRouting extension from the *FlowRecordV3 object
 func (flowRecord *FlowRecordV3) AsRouting() *EXasRouting {
 	offset := flowRecord.extOffset[EXasRoutingID].offset
 	if offset == 0 {
@@ -178,7 +183,7 @@ func (flowRecord *FlowRecordV3) AsRouting() *EXasRouting {
 	return asRouting
 }
 
-// Return bgp next hop IPv4 or IPv6
+// Returns the bgp next hop IPv4 or IPv6 from the *FlowRecordV3 object
 func (flowRecord *FlowRecordV3) BgpNextHop() *EXbgpNextHop {
 	// IPv4
 	offset := flowRecord.extOffset[EXbgpNextHopV4ID].offset
@@ -202,7 +207,7 @@ func (flowRecord *FlowRecordV3) BgpNextHop() *EXbgpNextHop {
 	return nil
 }
 
-// Return IP next hop IPv4 or IPv6
+// Returns the IP next hop IPv4 or IPv6 from the *FlowRecordV3 object
 func (flowRecord *FlowRecordV3) IpNextHop() *EXipNextHop {
 	// IPv4
 	offset := flowRecord.extOffset[EXipNextHopV4ID].offset
@@ -226,7 +231,7 @@ func (flowRecord *FlowRecordV3) IpNextHop() *EXipNextHop {
 	return nil
 }
 
-// Return IP received IPv4 or IPv6
+// Returns the IP received IPv4 or IPv6 from the *FlowRecordV3 object
 func (flowRecord *FlowRecordV3) IpReceived() *EXipReceived {
 	// IPv4
 	offset := flowRecord.extOffset[EXipReceivedV4ID].offset
@@ -250,7 +255,7 @@ func (flowRecord *FlowRecordV3) IpReceived() *EXipReceived {
 	return nil
 }
 
-// Return bgp next hop IPv4 or IPv6
+// Returns the bgp next hop IPv4 or IPv6 from the *FlowRecordV3 object
 func (flowRecord *FlowRecordV3) Sampling() *EXsamplerInfo {
 
 	offset := flowRecord.extOffset[EXsamplerInfoID].offset
@@ -261,7 +266,7 @@ func (flowRecord *FlowRecordV3) Sampling() *EXsamplerInfo {
 	return samplerInfo
 }
 
-// Return nat xlate IP extension
+// Returns the nat xlate IP extension from the *FlowRecordV3 object
 func (flowRecord *FlowRecordV3) NatXlateIP() *EXnatXlateIP {
 	if flowRecord.hasXlateIP {
 		return &EXnatXlateIP{flowRecord.srcXlateIP, flowRecord.dstXlateIP}
@@ -270,7 +275,7 @@ func (flowRecord *FlowRecordV3) NatXlateIP() *EXnatXlateIP {
 	}
 }
 
-// Return nat xlate port extension
+// Returns the nat xlate port extension from the *FlowRecordV3 object
 func (flowRecord *FlowRecordV3) NatXlatePort() *EXnatXlatePort {
 	offset := flowRecord.extOffset[EXnatXlatePortID].offset
 	if offset == 0 {
@@ -280,7 +285,7 @@ func (flowRecord *FlowRecordV3) NatXlatePort() *EXnatXlatePort {
 	return xlatePort
 }
 
-// Return natCommon extension
+// Returns the natCommon extension from the *FlowRecordV3 object
 func (flowRecord *FlowRecordV3) NatCommon() *EXnatCommon {
 	offset := flowRecord.extOffset[EXnatCommonID].offset
 	if offset == 0 {
@@ -290,7 +295,7 @@ func (flowRecord *FlowRecordV3) NatCommon() *EXnatCommon {
 	return natCommon
 }
 
-// Return natPortBlock extension
+// Returns the natPortBlock extension from the *FlowRecordV3 object
 func (flowRecord *FlowRecordV3) NatPortBlock() *EXnatPortBlock {
 	offset := flowRecord.extOffset[EXnatPortBlockID].offset
 	if offset == 0 {
@@ -300,7 +305,7 @@ func (flowRecord *FlowRecordV3) NatPortBlock() *EXnatPortBlock {
 	return natPortBlock
 }
 
-// Return payload
+// Returns the payload from the *FlowRecordV3 object
 func (flowRecord *FlowRecordV3) Payload() EXinPayload {
 	offset := flowRecord.extOffset[EXinPayloadID].offset
 	if offset == 0 {
@@ -310,7 +315,7 @@ func (flowRecord *FlowRecordV3) Payload() EXinPayload {
 	return flowRecord.rawRecord[offset : offset+size]
 }
 
-// get sampler info for flow record
+// returns the sampler info from the *FlowRecordV3 object
 func (flowRecord *FlowRecordV3) SamplerInfo(nfFile *NfFile) (int, int) {
 	return flowRecord.packetInterval, flowRecord.spaceInterval
 }
