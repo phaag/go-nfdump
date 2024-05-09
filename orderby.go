@@ -101,10 +101,10 @@ type orderOption struct {
 
 // table with all possible orderBy options currently implemented
 var orderTable = []orderOption{
-	orderOption{"tstart", getTstart},
-	orderOption{"tend", getTend},
-	orderOption{"packets", getPackets},
-	orderOption{"bytes", getBytes},
+	{"tstart", getTstart},
+	{"tend", getTend},
+	{"packets", getPackets},
+	{"bytes", getBytes},
 }
 
 // function, which uses recordChain as input
