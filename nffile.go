@@ -250,6 +250,13 @@ func (nfFile *NfFile) ReadDataBlocks() (chan DataBlock, error) {
 				// fmt.Printf("nfFile read block header: %v", err)
 				return
 			}
+			// fmt.Printf("Datablock type: %d, size: %d records: %d\n", dataBlock.Header.Type, dataBlock.Header.Size, dataBlock.Header.NumRecords)
+			if dataBlock.Header.Type != 3 {
+				if _, err := nfFile.file.Seek(int64(dataBlock.Header.Size), os.SEEK_CUR); err != nil {
+					fmt.Fprintf(os.Stderr, "file seek error: %v\n", err)
+				}
+				continue
+			}
 			var err error
 			dataBlock.Data, err = nfFile.uncompressBlock(&dataBlock.Header)
 			// fmt.Printf("nfFile uncompress block: %v", err)

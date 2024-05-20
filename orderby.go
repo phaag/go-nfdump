@@ -152,9 +152,11 @@ func (recordChain *RecordChain) OrderBy(orderBy string, direction int) *RecordCh
 		var cnt uint32 = 0
 		for record := range readChan {
 			if uint32(arrayLen)-cnt == 0 {
-				// double array, if exhausted
-				sortArray = append(make([]sortRecord, 2*arrayLen), sortArray...)
-				recordArray = append(make([]*FlowRecordV3, 2*arrayLen), recordArray...)
+				// extend array, if exhausted
+				// sortArray
+				sortArray = append(sortArray, make([]sortRecord, 2*arrayLen)...)
+				// recordArray
+				recordArray = append(recordArray, make([]*FlowRecordV3, 2*arrayLen)...)
 
 				// use new len of array. Go may assign more memory than requested
 				// so use actual len

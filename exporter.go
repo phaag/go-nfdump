@@ -81,6 +81,10 @@ func (nfFile *NfFile) addExporterStat(record []byte) {
 		packets := binary.LittleEndian.Uint64(record[offset+8 : offset+16])         // number of packets sent by this exporter
 		flows := binary.LittleEndian.Uint64(record[offset+16 : offset+24])          // number of flows sent by this exporter
 		offset += 24
+		if int(sysId) >= len(nfFile.ExporterList) {
+			fmt.Printf("Invalid Exporter id: %d\n", sysId)
+			return
+		}
 		if nfFile.ExporterList[sysId].SysId == uint16(sysId) {
 			nfFile.ExporterList[sysId].SequenceFailures += sequenceFailures
 			nfFile.ExporterList[sysId].Packets += packets

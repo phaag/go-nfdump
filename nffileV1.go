@@ -119,7 +119,15 @@ func (nfFile *NfFile) openV1() error {
 	nfFile.Header.Version = nfFileV1Header.Version
 	nfFile.Header.NfVersion = 0x106
 	nfFile.Header.Created = 0
-	nfFile.Header.Compression = 0
+	compression := 0
+	if nfFileV1Header.Flags&0x1 == 1 {
+		compression = 1 // LO0
+	} else if nfFileV1Header.Flags&0x8 == 0x8 {
+		compression = 2 // BZIP2
+	} else if nfFileV1Header.Flags&0x10 == 0x10 {
+		compression = 3 // LZ4
+	}
+	nfFile.Header.Compression = uint8(compression)
 	nfFile.Header.Encryption = 0
 	nfFile.Header.AppendixBlocks = 0
 	nfFile.Header.Unused = 0
