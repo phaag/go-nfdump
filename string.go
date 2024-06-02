@@ -101,6 +101,9 @@ func (flowRecord *FlowRecordV3) String() string {
 	s += flowRecord.dumpEXnatXlatePort()
 	s += flowRecord.dumpEXnatPortBlock()
 	s += flowRecord.dumpEXipReceived()
+	s += flowRecord.dumpEXflowId()
+	s += flowRecord.dumpEXnokiaNAT()
+	s += flowRecord.dumpEXnokiaNatString()
 
 	return s
 }
@@ -288,4 +291,33 @@ func (flowRecord *FlowRecordV3) dumpEXipReceived() string {
 		return ""
 	}
 	return fmt.Sprintf("  IP received : %v\n", ipReceived.IP)
+}
+
+func (flowRecord *FlowRecordV3) dumpEXflowId() string {
+	var flowId *EXflowId
+	if flowId = flowRecord.FlowId(); flowId == nil {
+		return ""
+	}
+	return fmt.Sprintf("  Flow ID     : 0x%x\n", flowId.FlowId)
+}
+
+func (flowRecord *FlowRecordV3) dumpEXnokiaNAT() string {
+	var nokiaNat *EXnokiaNat
+	if nokiaNat = flowRecord.NokiaNat(); nokiaNat == nil {
+		return ""
+	}
+
+	var s string = "" +
+		fmt.Sprintf("  In Srv ID   : %d\n", nokiaNat.InServiceID) +
+		fmt.Sprintf("  Out Srv ID  : %d\n", nokiaNat.OutServiceID)
+
+	return s
+}
+
+func (flowRecord *FlowRecordV3) dumpEXnokiaNatString() string {
+	var natString EXnokiaNatString
+	if natString = flowRecord.NokiaNatString(); natString == "" {
+		return ""
+	}
+	return fmt.Sprintf("  Flow ID     : %v\n", natString)
 }

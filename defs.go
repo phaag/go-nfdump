@@ -21,27 +21,30 @@ import (
 )
 
 const (
-	EXnull           = uint(C.EXnull)
-	EXgenericFlowID  = uint16(C.EXgenericFlowID)
-	EXipv4FlowID     = uint16(C.EXipv4FlowID)
-	EXipv6FlowID     = uint16(C.EXipv6FlowID)
-	EXflowMiscID     = uint16(C.EXflowMiscID)
-	EXcntFlowID      = uint16(C.EXcntFlowID)
-	EXvLanID         = uint16(C.EXvLanID)
-	EXasRoutingID    = uint16(C.EXasRoutingID)
-	EXbgpNextHopV4ID = uint16(C.EXbgpNextHopV4ID)
-	EXbgpNextHopV6ID = uint16(C.EXbgpNextHopV6ID)
-	EXipNextHopV4ID  = uint16(C.EXipNextHopV4ID)
-	EXipNextHopV6ID  = uint16(C.EXipNextHopV6ID)
-	EXipReceivedV4ID = uint16(C.EXipReceivedV4ID)
-	EXipReceivedV6ID = uint16(C.EXipReceivedV6ID)
-	EXsamplerInfoID  = uint16(C.EXsamplerInfoID)
-	EXinPayloadID    = uint16(C.EXinPayloadID)
-	EXnatXlateIPv4ID = uint16(C.EXnatXlateIPv4ID)
-	EXnatXlateIPv6ID = uint16(C.EXnatXlateIPv6ID)
-	EXnatXlatePortID = uint16(C.EXnatXlatePortID)
-	EXnatCommonID    = uint16(C.EXnelCommonID)
-	EXnatPortBlockID = uint16(C.EXnatPortBlockID)
+	EXnull             = uint(C.EXnull)
+	EXgenericFlowID    = uint16(C.EXgenericFlowID)
+	EXipv4FlowID       = uint16(C.EXipv4FlowID)
+	EXipv6FlowID       = uint16(C.EXipv6FlowID)
+	EXflowMiscID       = uint16(C.EXflowMiscID)
+	EXcntFlowID        = uint16(C.EXcntFlowID)
+	EXvLanID           = uint16(C.EXvLanID)
+	EXasRoutingID      = uint16(C.EXasRoutingID)
+	EXbgpNextHopV4ID   = uint16(C.EXbgpNextHopV4ID)
+	EXbgpNextHopV6ID   = uint16(C.EXbgpNextHopV6ID)
+	EXipNextHopV4ID    = uint16(C.EXipNextHopV4ID)
+	EXipNextHopV6ID    = uint16(C.EXipNextHopV6ID)
+	EXipReceivedV4ID   = uint16(C.EXipReceivedV4ID)
+	EXipReceivedV6ID   = uint16(C.EXipReceivedV6ID)
+	EXsamplerInfoID    = uint16(C.EXsamplerInfoID)
+	EXinPayloadID      = uint16(C.EXinPayloadID)
+	EXnatXlateIPv4ID   = uint16(C.EXnatXlateIPv4ID)
+	EXnatXlateIPv6ID   = uint16(C.EXnatXlateIPv6ID)
+	EXnatXlatePortID   = uint16(C.EXnatXlatePortID)
+	EXnatCommonID      = uint16(C.EXnatCommonID)
+	EXnatPortBlockID   = uint16(C.EXnatPortBlockID)
+	EXflowIdID         = uint16(C.EXflowIdID)
+	EXnokiaNatID       = uint16(C.EXnokiaNatID)
+	EXnokiaNatStringID = uint16(C.EXnokiaNatStringID)
 )
 
 const (
@@ -69,8 +72,11 @@ type EXvLan C.struct_EXvLan_s
 type EXasRouting C.struct_EXasRouting_s
 type EXsamplerInfo C.struct_EXsamplerInfo_s
 type EXnatXlatePort C.struct_EXnatXlatePort_s
-type EXnatCommon C.struct_EXnelCommon_s
+type EXnatCommon C.struct_EXnatCommon_s
 type EXnatPortBlock C.struct_EXnatPortBlock_s
+type EXflowId C.struct_EXflowId_s
+type EXnokiaNat C.struct_EXnokiaNat_s
+type EXnokiaNatString string
 
 type EXbgpNextHop struct {
 	IP net.IP

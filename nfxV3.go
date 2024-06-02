@@ -29,6 +29,9 @@ const (
 	EXnatXlatePortID	= uint16(0x16)
 	EXnatCommonID		= uint16(0x19)
 	EXnatPortBlockID	= uint16(0x1a)
+	EXflowIdID		= uint16(0x27)
+	EXnokiaNatID		= uint16(0x28)
+	EXnokiaNatStringID	= uint16(0x29)
 )
 
 const (
@@ -45,7 +48,7 @@ const (
 	SamplerRecordType	= uint16(0xf)
 )
 
-const MAXEXTENSIONS = uint16(0x27)
+const MAXEXTENSIONS = uint16(0x2a)
 
 type recordHeaderV3 struct {
 	Type		uint16
@@ -119,6 +122,14 @@ type EXnatPortBlock struct {
 	BlockStep	uint16
 	BlockSize	uint16
 }
+type EXflowId struct {
+	FlowId uint64
+}
+type EXnokiaNat struct {
+	InServiceID	uint16
+	OutServiceID	uint16
+}
+type EXnokiaNatString string
 
 type EXbgpNextHop struct {
 	IP net.IP

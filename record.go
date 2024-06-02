@@ -352,3 +352,34 @@ func (flowRecord *FlowRecordV3) GetSamplerInfo(nfFile *NfFile) {
 	}
 
 }
+
+// Returns the flowID extension from the *FlowRecordV3 object
+func (flowRecord *FlowRecordV3) FlowId() *EXflowId {
+	offset := flowRecord.extOffset[EXflowIdID].offset
+	if offset == 0 {
+		return nil
+	}
+	flowId := (*EXflowId)(unsafe.Pointer(&flowRecord.rawRecord[offset]))
+	return flowId
+}
+
+// Returns the flowID extension from the *FlowRecordV3 object
+func (flowRecord *FlowRecordV3) NokiaNat() *EXnokiaNat {
+	offset := flowRecord.extOffset[EXnokiaNatID].offset
+	if offset == 0 {
+		return nil
+	}
+	nokiaNat := (*EXnokiaNat)(unsafe.Pointer(&flowRecord.rawRecord[offset]))
+	return nokiaNat
+}
+
+// Returns the payload from the *FlowRecordV3 object
+func (flowRecord *FlowRecordV3) NokiaNatString() EXnokiaNatString {
+	offset := flowRecord.extOffset[EXnokiaNatStringID].offset
+	if offset == 0 {
+		return ""
+	}
+	size := flowRecord.extOffset[EXnokiaNatStringID].size
+	bytes := flowRecord.rawRecord[offset : offset+size]
+	return (EXnokiaNatString)(string(bytes[:]))
+}
