@@ -22,6 +22,7 @@ const (
 	EXipNextHopV6ID		= uint16(0xb)
 	EXipReceivedV4ID	= uint16(0xc)
 	EXipReceivedV6ID	= uint16(0xd)
+	EXmplsLabelID		= uint16(0xe)
 	EXsamplerInfoID		= uint16(0x12)
 	EXinPayloadID		= uint16(0x1d)
 	EXnatXlateIPv4ID	= uint16(0x14)
@@ -41,11 +42,13 @@ const (
 )
 
 const (
+	ExtensionMapType	= uint16(0x2)
 	V3Record		= uint16(0xb)
 	ExporterInfoRecordType	= uint16(0x7)
 	ExporterStatRecordType	= uint16(0x8)
 	SamplerLegacyRecordType	= uint16(0x9)
 	SamplerRecordType	= uint16(0xf)
+	CommonRecordType	= uint16(0xa)
 )
 
 const MAXEXTENSIONS = uint16(0x2a)
@@ -95,9 +98,15 @@ type EXvLan struct {
 	SrcVlan	uint32
 	DstVlan	uint32
 }
+type EXmplsLabel struct {
+	MplsLabel [10]uint32
+}
 type EXasRouting struct {
 	SrcAS	uint32
 	DstAS	uint32
+}
+type EXipReceivedV4 struct {
+	Ip uint32
 }
 type EXsamplerInfo struct {
 	SelectorID	uint64

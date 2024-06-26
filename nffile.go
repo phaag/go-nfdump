@@ -251,17 +251,27 @@ func (nfFile *NfFile) ReadDataBlocks() (chan DataBlock, error) {
 				return
 			}
 			// fmt.Printf("Datablock type: %d, size: %d records: %d\n", dataBlock.Header.Type, dataBlock.Header.Size, dataBlock.Header.NumRecords)
-			if dataBlock.Header.Type != 3 {
-				if _, err := nfFile.file.Seek(int64(dataBlock.Header.Size), os.SEEK_CUR); err != nil {
-					fmt.Fprintf(os.Stderr, "file seek error: %v\n", err)
-				}
-				continue
-			}
+			// if dataBlock.Header.Type != 3 {
+			// 	if _, err := nfFile.file.Seek(int64(dataBlock.Header.Size), os.SEEK_CUR); err != nil {
+			// 		fmt.Fprintf(os.Stderr, "file seek error: %v\n", err)
+			// 	}
+			// 	continue
+			// }
 			var err error
 			dataBlock.Data, err = nfFile.uncompressBlock(&dataBlock.Header)
+
 			// fmt.Printf("nfFile uncompress block: %v", err)
-			if err == nil {
-				blockChannel <- dataBlock
+			if dataBlock.Header.Type == 2 {
+				v3DataBlock := DataBlock{Header: DataBlockHeader{Size: 0, NumRecords: 0, Flags: 0, Type: 3}}
+				v3DataBlock.Header.Type = 3
+				v3DataBlock.Data = make([]byte, BUFFSIZE)
+				ConvertBlockType2(&dataBlock, &v3DataBlock)
+				blockChannel <- v3DataBlock
+			} else {
+				// fmt.Printf("nfFile uncompress block: %v", err)
+				if err == nil {
+					blockChannel <- dataBlock
+				}
 			}
 		}
 		close(blockChannel)
