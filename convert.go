@@ -43,7 +43,6 @@ type CommonRecordFixed struct {
 	FlowEndReason uint8
 }
 
-// CommonRecord represents a NetFlow common record.
 type CommonRecord struct {
 	CommonRecordFixed
 	Data []byte
