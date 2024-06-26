@@ -35,6 +35,7 @@ const (
 	EXipNextHopV6ID    = uint16(C.EXipNextHopV6ID)
 	EXipReceivedV4ID   = uint16(C.EXipReceivedV4ID)
 	EXipReceivedV6ID   = uint16(C.EXipReceivedV6ID)
+	EXmplsLabelID      = uint16(C.EXmplsLabelID)
 	EXsamplerInfoID    = uint16(C.EXsamplerInfoID)
 	EXinPayloadID      = uint16(C.EXinPayloadID)
 	EXnatXlateIPv4ID   = uint16(C.EXnatXlateIPv4ID)
@@ -54,11 +55,13 @@ const (
 )
 
 const (
+	ExtensionMapType        = uint16(C.ExtensionMapType)
 	V3Record                = uint16(C.V3Record)
 	ExporterInfoRecordType  = uint16(C.ExporterInfoRecordType)
 	ExporterStatRecordType  = uint16(C.ExporterStatRecordType)
 	SamplerLegacyRecordType = uint16(C.SamplerLegacyRecordType)
 	SamplerRecordType       = uint16(C.SamplerRecordType)
+	CommonRecordType        = uint16(C.CommonRecordType)
 )
 
 const MAXEXTENSIONS = uint16(C.MAXEXTENSIONS)
@@ -69,7 +72,9 @@ type EXgenericFlow C.struct_EXgenericFlow_s
 type EXflowMisc C.struct_EXflowMisc_s
 type EXcntFlow C.struct_EXcntFlow_s
 type EXvLan C.struct_EXvLan_s
+type EXmplsLabel C.struct_EXmplsLabel_s
 type EXasRouting C.struct_EXasRouting_s
+type EXipReceivedV4 C.struct_EXipReceivedV4_s
 type EXsamplerInfo C.struct_EXsamplerInfo_s
 type EXnatXlatePort C.struct_EXnatXlatePort_s
 type EXnatCommon C.struct_EXnatCommon_s

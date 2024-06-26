@@ -93,6 +93,7 @@ func (flowRecord *FlowRecordV3) String() string {
 	s += flowRecord.dumpEXflowMisc()
 	s += flowRecord.dumpEXcntFlow()
 	s += flowRecord.dumpEXvLan()
+	s += flowRecord.dumpEXmpls()
 	s += flowRecord.dumpEXasRouting()
 	s += flowRecord.dumpEXbgpNextHop()
 	s += flowRecord.dumpEXipNextHop()
@@ -196,6 +197,20 @@ func (flowRecord *FlowRecordV3) dumpEXvLan() string {
 		fmt.Sprintf("  Src Vlan    : %d\n", vLan.SrcVlan) +
 		fmt.Sprintf("  Dst Vlan    : %d\n", vLan.DstVlan)
 
+	return s
+}
+
+func (flowRecord *FlowRecordV3) dumpEXmpls() string {
+	var mplsLabels *EXmplsLabel
+	if mplsLabels = flowRecord.MplsLabels(); mplsLabels == nil {
+		return ""
+	}
+
+	var s string
+	for i, label := range mplsLabels.MplsLabel {
+		formattedLabel := fmt.Sprintf("%d-%1d-%1d", label>>4, (label&0xF)>>1, label&1)
+		s += fmt.Sprintf("  MPLS Label%d : %s\n", i, formattedLabel)
+	}
 	return s
 }
 
