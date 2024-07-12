@@ -32,12 +32,15 @@ const (
 	EXflowIdID		= uint16(0x27)
 	EXnokiaNatID		= uint16(0x28)
 	EXnokiaNatStringID	= uint16(0x29)
+	EXipInfoID		= uint16(0x2a)
 )
 
 const (
 	V3_FLAG_EVENT	= uint(0x1)
 	V3_FLAG_SAMPLED	= uint(0x2)
 	V3_FLAG_ANON	= uint(0x4)
+	FlagMF		= uint8(0x20)
+	FlagDF		= uint8(0x40)
 )
 
 const (
@@ -48,7 +51,7 @@ const (
 	SamplerRecordType	= uint16(0xf)
 )
 
-const MAXEXTENSIONS = uint16(0x2a)
+const MAXEXTENSIONS = uint16(0x2b)
 
 type recordHeaderV3 struct {
 	Type		uint16
@@ -83,8 +86,7 @@ type EXflowMisc struct {
 	DstTos		uint8
 	BiFlowDir	uint8
 	FlowEndReason	uint8
-	RevTcpFlags	uint8
-	FragmentFlags	uint8
+	Align		uint16
 }
 type EXcntFlow struct {
 	Flows		uint64
@@ -130,6 +132,11 @@ type EXnokiaNat struct {
 	OutServiceID	uint16
 }
 type EXnokiaNatString string
+type EXipInfo struct {
+	Ttl		uint8
+	FragmentFlags	uint8
+	Align		uint16
+}
 
 type EXbgpNextHop struct {
 	IP net.IP

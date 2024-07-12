@@ -45,12 +45,15 @@ const (
 	EXflowIdID         = uint16(C.EXflowIdID)
 	EXnokiaNatID       = uint16(C.EXnokiaNatID)
 	EXnokiaNatStringID = uint16(C.EXnokiaNatStringID)
+	EXipInfoID         = uint16(C.EXipInfoID)
 )
 
 const (
 	V3_FLAG_EVENT   = uint(C.V3_FLAG_EVENT)
 	V3_FLAG_SAMPLED = uint(C.V3_FLAG_SAMPLED)
 	V3_FLAG_ANON    = uint(C.V3_FLAG_ANON)
+	FlagMF          = uint8(C.flagMF)
+	FlagDF          = uint8(C.flagDF)
 )
 
 const (
@@ -77,6 +80,7 @@ type EXnatPortBlock C.struct_EXnatPortBlock_s
 type EXflowId C.struct_EXflowId_s
 type EXnokiaNat C.struct_EXnokiaNat_s
 type EXnokiaNatString string
+type EXipInfo C.struct_EXipInfo_s
 
 type EXbgpNextHop struct {
 	IP net.IP

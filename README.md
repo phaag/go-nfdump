@@ -101,19 +101,25 @@ func main() {
     }
     
     // get NAT xlate ports
-    if natXlatePort := flowRecord.NatXlatePort(); natXlatePort == nil {
+    if natXlatePort := flowRecord.NatXlatePort(); natXlatePort != nil {
       fmt.Printf("  Src X-Port  : %d\n", natXlatePort.XlateSrcPort)
       fmt.Printf("  Dst X-Port  : %d\n", natXlatePort.XlateDstPort)
     }
   
     // get nat port block and print
-    if natPortBlock := flowRecord.NatPortBlock(); natPortBlock == nil {
+    if natPortBlock := flowRecord.NatPortBlock(); natPortBlock != nil {
       fmt.Printf("  NAT pstart  : %d\n", natPortBlock.BlockStart)
 			fmt.Printf("  NAT pend    : %d\n", natPortBlock.BlockEnd)
 			fmt.Printf("  NAT pstep   : %d\n", natPortBlock.BlockStep)
 			fmt.Printf("  NAT psize   : %d\n", natPortBlock.BlockSize)
 		}
-   
+ 
+    // get IP info extension
+    if ipInfo := flowRecord.IpInfo(); ipInfo != nil {
+      fmt.Pprintf("  IP ttl      : %d\n", ipInfo.Ttl)
+		  fmt.Pprintf("  IP fragment : %s%s\n", ipInfo.FragmentFlags)
+    }
+    
 		/*
 			// other extension
 			// see nfxV3.go for all fields in the respectiv records

@@ -383,3 +383,13 @@ func (flowRecord *FlowRecordV3) NokiaNatString() EXnokiaNatString {
 	bytes := flowRecord.rawRecord[offset : offset+size]
 	return (EXnokiaNatString)(string(bytes[:]))
 }
+
+// Returns the ipInfo extension from the *FlowRecordV3 object
+func (flowRecord *FlowRecordV3) IpInfo() *EXipInfo {
+	offset := flowRecord.extOffset[EXipInfoID].offset
+	if offset == 0 {
+		return nil
+	}
+	ipInfo := (*EXipInfo)(unsafe.Pointer(&flowRecord.rawRecord[offset]))
+	return ipInfo
+}
