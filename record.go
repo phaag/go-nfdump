@@ -65,7 +65,7 @@ func NewRecord(record []byte) (*FlowRecordV3, error) {
 	numElements := binary.LittleEndian.Uint16(record[offset+4 : offset+6])
 
 	if recordType != V3Record {
-		return nil, fmt.Errorf("Not a v3 record")
+		return nil, fmt.Errorf("not a v3 record")
 	}
 
 	flowRecord := new(FlowRecordV3)
@@ -78,12 +78,12 @@ func NewRecord(record []byte) (*FlowRecordV3, error) {
 	for i := 0; i < int(numElements); i++ {
 		// fmt.Printf(" . next Element at offset: %d\n", offset)
 		if (offset + 4) > int(recordSize) {
-			return nil, fmt.Errorf("Record header boundary check error")
+			return nil, fmt.Errorf("record header boundary check error")
 		}
 		elementType := binary.LittleEndian.Uint16(raw[offset : offset+2])
 		elementSize := binary.LittleEndian.Uint16(raw[offset+2 : offset+4])
 		if (offset + int(elementSize)) > int(recordSize) {
-			return nil, fmt.Errorf("Record body boundary check error")
+			return nil, fmt.Errorf("record body boundary check error")
 		}
 		// fmt.Printf(" . Element type: %d, length: %d\n", elementType, elementSize)
 		exOffset := offset + 4
@@ -171,6 +171,16 @@ func (flowRecord *FlowRecordV3) VLan() *EXvLan {
 	}
 	vlan := (*EXvLan)(unsafe.Pointer(&flowRecord.rawRecord[offset]))
 	return vlan
+}
+
+// Return MPLS labels extension from the *FlowRecordV3 object
+func (flowRecord *FlowRecordV3) MplsLabels() *EXmplsLabel {
+	offset := flowRecord.extOffset[EXmplsLabelID].offset
+	if offset == 0 {
+		return nil
+	}
+	mplsLabels := (*EXmplsLabel)(unsafe.Pointer(&flowRecord.rawRecord[offset]))
+	return mplsLabels
 }
 
 // Returns the asRouting extension from the *FlowRecordV3 object
