@@ -22,6 +22,7 @@ const (
 	EXipNextHopV6ID		= uint16(0xb)
 	EXipReceivedV4ID	= uint16(0xc)
 	EXipReceivedV6ID	= uint16(0xd)
+	EXmplsLabelID		= uint16(0xe)
 	EXsamplerInfoID		= uint16(0x12)
 	EXinPayloadID		= uint16(0x1d)
 	EXnatXlateIPv4ID	= uint16(0x14)
@@ -96,6 +97,9 @@ type EXcntFlow struct {
 type EXvLan struct {
 	SrcVlan	uint32
 	DstVlan	uint32
+}
+type EXmplsLabel struct {
+	MplsLabel [10]uint32
 }
 type EXasRouting struct {
 	SrcAS	uint32

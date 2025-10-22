@@ -35,6 +35,7 @@ const (
 	EXipNextHopV6ID    = uint16(C.EXipNextHopV6ID)
 	EXipReceivedV4ID   = uint16(C.EXipReceivedV4ID)
 	EXipReceivedV6ID   = uint16(C.EXipReceivedV6ID)
+	EXmplsLabelID      = uint16(C.EXmplsLabelID)
 	EXsamplerInfoID    = uint16(C.EXsamplerInfoID)
 	EXinPayloadID      = uint16(C.EXinPayloadID)
 	EXnatXlateIPv4ID   = uint16(C.EXnatXlateIPv4ID)
@@ -72,6 +73,7 @@ type EXgenericFlow C.struct_EXgenericFlow_s
 type EXflowMisc C.struct_EXflowMisc_s
 type EXcntFlow C.struct_EXcntFlow_s
 type EXvLan C.struct_EXvLan_s
+type EXmplsLabel C.struct_EXmplsLabel_s
 type EXasRouting C.struct_EXasRouting_s
 type EXsamplerInfo C.struct_EXsamplerInfo_s
 type EXnatXlatePort C.struct_EXnatXlatePort_s

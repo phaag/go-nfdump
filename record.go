@@ -173,6 +173,16 @@ func (flowRecord *FlowRecordV3) VLan() *EXvLan {
 	return vlan
 }
 
+// Return MPLS labels extension from the *FlowRecordV3 object
+func (flowRecord *FlowRecordV3) MplsLabels() *EXmplsLabel {
+	offset := flowRecord.extOffset[EXmplsLabelID].offset
+	if offset == 0 {
+		return nil
+	}
+	mplsLabels := (*EXmplsLabel)(unsafe.Pointer(&flowRecord.rawRecord[offset]))
+	return mplsLabels
+}
+
 // Returns the asRouting extension from the *FlowRecordV3 object
 func (flowRecord *FlowRecordV3) AsRouting() *EXasRouting {
 	offset := flowRecord.extOffset[EXasRoutingID].offset
