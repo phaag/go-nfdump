@@ -38,6 +38,7 @@ const (
 	V3_FLAG_EVENT	= uint(0x1)
 	V3_FLAG_SAMPLED	= uint(0x2)
 	V3_FLAG_ANON	= uint(0x4)
+	V3_FLAG_PASSED	= uint(0x80)
 )
 
 const (
@@ -48,7 +49,7 @@ const (
 	SamplerRecordType	= uint16(0xf)
 )
 
-const MAXEXTENSIONS = uint16(0x2a)
+const MAXEXTENSIONS = uint16(0x2b)
 
 type recordHeaderV3 struct {
 	Type		uint16

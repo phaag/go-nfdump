@@ -9,7 +9,7 @@ package nfdump
 import (
 	"encoding/binary"
 	"fmt"
-	"os"
+	"io"
 )
 
 const (
@@ -79,7 +79,7 @@ func (nfFile *NfFile) openV1() error {
 	var nfFileV1Header NfFileHeaderV1
 	var statRecordV1 statRecordV1
 
-	nfFile.file.Seek(0, os.SEEK_SET)
+	nfFile.file.Seek(0, io.SeekStart)
 	if err := binary.Read(nfFile.file, binary.LittleEndian, &nfFileV1Header); err != nil {
 		nfFile.file.Close()
 		return fmt.Errorf("nfFile read V1 header: %v", err)

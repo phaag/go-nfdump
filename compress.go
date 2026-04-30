@@ -34,15 +34,12 @@ func (nfFile *NfFile) uncompressBlock(blockHeader *DataBlockHeader) ([]byte, err
 		dataBlock = out
 		blockHeader.Size = uint32(len(out))
 	case BZ2_COMPRESSED:
-		reader := bzip2.NewReader(bytes.NewReader(dataBlock))
-		out := make([]byte, BUFFSIZE)
-		n, err := reader.Read(out)
+		out, err := io.ReadAll(bzip2.NewReader(bytes.NewReader(dataBlock)))
 		if err != nil {
 			return nil, fmt.Errorf("nfFile uncompress bzip2 data block: %v", err)
 		}
-		out = out[:n]
 		dataBlock = out
-		blockHeader.Size = uint32(n)
+		blockHeader.Size = uint32(len(out))
 	case LZ4_COMPRESSED:
 		out := make([]byte, BUFFSIZE)
 		n, err := lz4.UncompressBlock(dataBlock, out)
@@ -53,8 +50,14 @@ func (nfFile *NfFile) uncompressBlock(blockHeader *DataBlockHeader) ([]byte, err
 		dataBlock = out
 		blockHeader.Size = uint32(n)
 	case ZSTD_COMPRESSED:
-		var decoder, _ = zstd.NewReader(nil, zstd.WithDecoderConcurrency(0))
-		out, err := decoder.DecodeAll(dataBlock, nil)
+		if nfFile.zstdDecoder == nil {
+			var err error
+			nfFile.zstdDecoder, err = zstd.NewReader(nil, zstd.WithDecoderConcurrency(0))
+			if err != nil {
+				return nil, fmt.Errorf("nfFile create zstd decoder: %v", err)
+			}
+		}
+		out, err := nfFile.zstdDecoder.DecodeAll(dataBlock, nil)
 		if err != nil {
 			return nil, fmt.Errorf("nfFile uncompress zstd data block: %v", err)
 		}

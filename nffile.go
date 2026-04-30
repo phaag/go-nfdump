@@ -13,6 +13,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+
+	zstd "github.com/klauspost/compress/zstd"
 )
 
 type NfFile struct {
@@ -21,6 +23,7 @@ type NfFile struct {
 	ident        string
 	StatRecord   StatRecord
 	ExporterList []Exporter
+	zstdDecoder  *zstd.Decoder
 }
 
 const NOT_COMPRESSED = 0
@@ -162,23 +165,28 @@ func (nfFile *NfFile) readAppendix() error {
 
 		for j := 0; j < int(blockHeader.NumRecords); j++ {
 			var record recordHeader
-			binary.Read(b, binary.LittleEndian, &record)
-			/*
-				fmt.Printf("Record type: %d\n", record.Type)
-				fmt.Printf("Record size: %d\n", record.Size)
-			*/
+			if err := binary.Read(b, binary.LittleEndian, &record); err != nil {
+				break
+			}
+			var readErr error
 			switch record.Type {
 			case TYPE_IDENT:
 				ident := make([]byte, record.Size-4) // 4 header
-				binary.Read(b, binary.LittleEndian, &ident)
-				nfFile.ident = string(ident)
+				readErr = binary.Read(b, binary.LittleEndian, &ident)
+				if readErr == nil {
+					nfFile.ident = string(ident)
+				}
 			case TYPE_STAT:
-				// fmt.Printf("Read stat: %d\n", unsafe.Sizeof(nfFile.StatRecord))
-				binary.Read(b, binary.LittleEndian, &nfFile.StatRecord)
+				readErr = binary.Read(b, binary.LittleEndian, &nfFile.StatRecord)
 			default:
 				// skip
-				recordData := make([]byte, record.Size-4)
-				binary.Read(b, binary.LittleEndian, &recordData)
+				if record.Size > 4 {
+					recordData := make([]byte, record.Size-4)
+					readErr = binary.Read(b, binary.LittleEndian, &recordData)
+				}
+			}
+			if readErr != nil {
+				break
 			}
 		}
 	}
@@ -224,6 +232,10 @@ func (nfFile *NfFile) Open(fileName string) error {
 
 // Closes the current underlaying file
 func (nfFile *NfFile) Close() error {
+	if nfFile.zstdDecoder != nil {
+		nfFile.zstdDecoder.Close()
+		nfFile.zstdDecoder = nil
+	}
 	nfFile.file.Close()
 	return nil
 }
@@ -252,7 +264,7 @@ func (nfFile *NfFile) ReadDataBlocks() (chan DataBlock, error) {
 			}
 			// fmt.Printf("Datablock type: %d, size: %d records: %d\n", dataBlock.Header.Type, dataBlock.Header.Size, dataBlock.Header.NumRecords)
 			if dataBlock.Header.Type != 3 {
-				if _, err := nfFile.file.Seek(int64(dataBlock.Header.Size), os.SEEK_CUR); err != nil {
+				if _, err := nfFile.file.Seek(int64(dataBlock.Header.Size), io.SeekCurrent); err != nil {
 					fmt.Fprintf(os.Stderr, "file seek error: %v\n", err)
 				}
 				continue

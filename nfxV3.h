@@ -686,8 +686,25 @@ typedef struct EXnokiaNatString_s {
 } EXnokiaNatString_t;
 #define EXnokiaNatStringSize (sizeof(EXnokiaNatString_t) + sizeof(elementHeader_t))
 
+#define EXipInfoID 42
+typedef struct EXipInfo_s {
+    uint8_t fill;
+#define flagMF 0x20
+#define flagDF 0x40
+    uint8_t fragmentFlags;
+#define OFFfragmentFlags offsetof(EXipInfo_t, fragmentFlags)
+#define SIZEfragmentFlags MemberSize(EXipInfo_t, fragmentFlags)
+    uint8_t minTTL;
+    uint8_t maxTTL;
+#define OFFminTTL offsetof(EXipInfo_t, minTTL)
+#define SIZEminTTL MemberSize(EXipInfo_t, minTTL)
+#define OFFmaxTTL offsetof(EXipInfo_t, maxTTL)
+#define SIZEmaxTTL MemberSize(EXipInfo_t, maxTTL)
+} EXipInfo_t;
+#define EXipInfoSize (sizeof(EXipInfo_t) + sizeof(elementHeader_t))
+
 // max possible elements
-#define MAXEXTENSIONS 42
+#define MAXEXTENSIONS 43
 
 // push a fixed length extension to the v3 record
 // h v3 record header
@@ -756,7 +773,7 @@ static const struct extensionTable_s {
     EXTENSION(EXnatCommon),    EXTENSION(EXnatPortBlock),  EXTENSION(EXnbarApp),      EXTENSION(EXlabel),        EXTENSION(EXinPayload),
     EXTENSION(EXoutPayload),   EXTENSION(EXtunIPv4),       EXTENSION(EXtunIPv6),      EXTENSION(EXobservation),  EXTENSION(EXinmonMeta),
     EXTENSION(EXinmonFrame),   EXTENSION(EXvrf),           EXTENSION(EXpfinfo),       EXTENSION(EXlayer2),       EXTENSION(EXflowId),
-    EXTENSION(EXnokiaNat),     EXTENSION(EXnokiaNatString)};
+    EXTENSION(EXnokiaNat),     EXTENSION(EXnokiaNatString), EXTENSION(EXipInfo)};
 
 typedef struct record_map_s {
     recordHeaderV3_t *recordHeader;

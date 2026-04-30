@@ -24,12 +24,6 @@ type sortRecord struct {
 // the sort slice type for sorting
 type sortType []sortRecord
 
-// the slice for all sort record, to be sorted
-var sortArray []sortRecord
-
-// the static record array is just filled and never moved
-var recordArray []*FlowRecordV3
-
 // sort direction ASCENDING
 const ASCENDING = 1
 
@@ -70,7 +64,7 @@ func getTstart(record *FlowRecordV3) uint64 {
 func getTend(record *FlowRecordV3) uint64 {
 	var value uint64
 	if genericFlow := record.GenericFlow(); genericFlow != nil {
-		value = genericFlow.MsecFirst
+		value = genericFlow.MsecLast
 	}
 	return value
 }
@@ -135,16 +129,15 @@ func (recordChain *RecordChain) OrderBy(orderBy string, direction int) *RecordCh
 	// write the sorted records to this channel
 	writeChan := make(chan *FlowRecordV3, 128)
 
-	// store all flow records into an array for later printing
-	// initial len - 1 meg
-	recordArray = make([]*FlowRecordV3, 1024*1024)
-
-	// store value to be sorted and index of appropriate flow record of
-	// recordArray. initial len - 1 meg
-	sortArray = make([]sortRecord, 1024*1024)
-
 	// fire off goroutine
 	go func(readChan chan *FlowRecordV3) {
+		// store all flow records into an array for later printing
+		// initial len - 1 meg
+		recordArray := make([]*FlowRecordV3, 1024*1024)
+
+		// store value to be sorted and index of appropriate flow record of
+		// recordArray. initial len - 1 meg
+		sortArray := make([]sortRecord, 1024*1024)
 
 		var arrayLen = len(sortArray)
 		// use direct access ..[cnt] to slice to speed up instead of append()
