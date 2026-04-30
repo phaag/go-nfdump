@@ -239,10 +239,7 @@ typedef struct EXflowMisc_s {
     uint8_t flowEndReason;
 #define OFFflowEndReason offsetof(EXflowMisc_t, flowEndReason)
 #define SIZEflowEndReason MemberSize(EXflowMisc_t, flowEndReason)
-    uint8_t revTcpFlags;
-    uint8_t fragmentFlags;
-#define OFFfragmentFlags offsetof(EXflowMisc_t, fragmentFlags)
-#define SIZEfragmentFlags MemberSize(EXflowMisc_t, fragmentFlags)
+    uint16_t align;
 } EXflowMisc_t;
 #define EXflowMiscSize (sizeof(EXflowMisc_t) + sizeof(elementHeader_t))
 
@@ -757,23 +754,23 @@ typedef struct EXipInfo_s {
 
 #define ExtensionLength(ext) (((elementHeader_t *)((void *)ext - sizeof(elementHeader_t)))->length - sizeof(elementHeader_t))
 
-#define EXTENSION(s) \
-    { s##ID, s##Size, #s }
+#define EXTENSION(s) {s##ID, s##Size, #s}
 
 static const struct extensionTable_s {
     uint32_t id;    // id number
     uint32_t size;  // number of bytes incl. header, 0xFFFF for dyn length
     char *name;     // name of extension
-} extensionTable[] = {
-    {0, 0, "EXnull"},          EXTENSION(EXgenericFlow),   EXTENSION(EXipv4Flow),     EXTENSION(EXipv6Flow),     EXTENSION(EXflowMisc),
-    EXTENSION(EXcntFlow),      EXTENSION(EXvLan),          EXTENSION(EXasRouting),    EXTENSION(EXbgpNextHopV4), EXTENSION(EXbgpNextHopV6),
-    EXTENSION(EXipNextHopV4),  EXTENSION(EXipNextHopV6),   EXTENSION(EXipReceivedV4), EXTENSION(EXipReceivedV6), EXTENSION(EXmplsLabel),
-    EXTENSION(EXmacAddr),      EXTENSION(EXasAdjacent),    EXTENSION(EXlatency),      EXTENSION(EXsamplerInfo),  EXTENSION(EXnselCommon),
-    EXTENSION(EXnatXlateIPv4), EXTENSION(EXnatXlateIPv6),  EXTENSION(EXnatXlatePort), EXTENSION(EXnselAcl),      EXTENSION(EXnselUser),
-    EXTENSION(EXnatCommon),    EXTENSION(EXnatPortBlock),  EXTENSION(EXnbarApp),      EXTENSION(EXlabel),        EXTENSION(EXinPayload),
-    EXTENSION(EXoutPayload),   EXTENSION(EXtunIPv4),       EXTENSION(EXtunIPv6),      EXTENSION(EXobservation),  EXTENSION(EXinmonMeta),
-    EXTENSION(EXinmonFrame),   EXTENSION(EXvrf),           EXTENSION(EXpfinfo),       EXTENSION(EXlayer2),       EXTENSION(EXflowId),
-    EXTENSION(EXnokiaNat),     EXTENSION(EXnokiaNatString), EXTENSION(EXipInfo)};
+} extensionTable[] = {{0, 0, "EXnull"},          EXTENSION(EXgenericFlow),    EXTENSION(EXipv4Flow),     EXTENSION(EXipv6Flow),
+                      EXTENSION(EXflowMisc),     EXTENSION(EXcntFlow),        EXTENSION(EXvLan),         EXTENSION(EXasRouting),
+                      EXTENSION(EXbgpNextHopV4), EXTENSION(EXbgpNextHopV6),   EXTENSION(EXipNextHopV4),  EXTENSION(EXipNextHopV6),
+                      EXTENSION(EXipReceivedV4), EXTENSION(EXipReceivedV6),   EXTENSION(EXmplsLabel),    EXTENSION(EXmacAddr),
+                      EXTENSION(EXasAdjacent),   EXTENSION(EXlatency),        EXTENSION(EXsamplerInfo),  EXTENSION(EXnselCommon),
+                      EXTENSION(EXnatXlateIPv4), EXTENSION(EXnatXlateIPv6),   EXTENSION(EXnatXlatePort), EXTENSION(EXnselAcl),
+                      EXTENSION(EXnselUser),     EXTENSION(EXnatCommon),      EXTENSION(EXnatPortBlock), EXTENSION(EXnbarApp),
+                      EXTENSION(EXlabel),        EXTENSION(EXinPayload),      EXTENSION(EXoutPayload),   EXTENSION(EXtunIPv4),
+                      EXTENSION(EXtunIPv6),      EXTENSION(EXobservation),    EXTENSION(EXinmonMeta),    EXTENSION(EXinmonFrame),
+                      EXTENSION(EXvrf),          EXTENSION(EXpfinfo),         EXTENSION(EXlayer2),       EXTENSION(EXflowId),
+                      EXTENSION(EXnokiaNat),     EXTENSION(EXnokiaNatString), EXTENSION(EXipInfo)};
 
 typedef struct record_map_s {
     recordHeaderV3_t *recordHeader;

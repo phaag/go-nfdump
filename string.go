@@ -104,6 +104,7 @@ func (flowRecord *FlowRecordV3) String() string {
 	s += flowRecord.dumpEXflowId()
 	s += flowRecord.dumpEXnokiaNAT()
 	s += flowRecord.dumpEXnokiaNatString()
+	s += flowRecord.dumpEXipInfoString()
 
 	return s
 }
@@ -320,4 +321,25 @@ func (flowRecord *FlowRecordV3) dumpEXnokiaNatString() string {
 		return ""
 	}
 	return fmt.Sprintf("  Flow ID     : %v\n", natString)
+}
+
+func (flowRecord *FlowRecordV3) dumpEXipInfoString() string {
+	var ipInfo *EXipInfo
+	if ipInfo = flowRecord.IpInfo(); ipInfo == nil {
+		return ""
+	}
+
+	var DF string = "--"
+	var MF string = "--"
+	if ipInfo.FragmentFlags&FlagMF != 0 {
+		MF = "MF"
+	}
+	if ipInfo.FragmentFlags&FlagDF != 0 {
+		DF = "DF"
+	}
+	var s string = "" +
+		fmt.Sprintf("  IP ttl      : %d\n", ipInfo.Ttl) +
+		fmt.Sprintf("  IP fragment : %s%s\n", DF, MF)
+
+	return s
 }
