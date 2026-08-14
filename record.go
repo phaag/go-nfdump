@@ -26,11 +26,6 @@ type elementParam struct {
 	size   int
 }
 
-const (
-	FlagMF uint8 = 0x20
-	FlagDF uint8 = 0x40
-)
-
 type FlowRecordV3 struct {
 	rawRecord      []byte
 	recordHeader   *recordHeaderV3

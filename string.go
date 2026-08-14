@@ -337,7 +337,8 @@ func (flowRecord *FlowRecordV3) dumpEXipInfoString() string {
 		DF = "DF"
 	}
 	var s string = "" +
-		fmt.Sprintf("  IP ttl      : %d\n", ipInfo.Ttl) +
+		fmt.Sprintf("  IP min ttl  : %d\n", ipInfo.MinTTL) +
+		fmt.Sprintf("  IP max ttl  : %d\n", ipInfo.MaxTTL) +
 		fmt.Sprintf("  IP fragment : %s%s\n", DF, MF)
 
 	return s

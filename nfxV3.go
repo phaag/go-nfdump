@@ -8,133 +8,135 @@ import (
 )
 
 const (
-	EXnull             = uint(0x0)
-	EXgenericFlowID    = uint16(0x1)
-	EXipv4FlowID       = uint16(0x2)
-	EXipv6FlowID       = uint16(0x3)
-	EXflowMiscID       = uint16(0x4)
-	EXcntFlowID        = uint16(0x5)
-	EXvLanID           = uint16(0x6)
-	EXasRoutingID      = uint16(0x7)
-	EXbgpNextHopV4ID   = uint16(0x8)
-	EXbgpNextHopV6ID   = uint16(0x9)
-	EXipNextHopV4ID    = uint16(0xa)
-	EXipNextHopV6ID    = uint16(0xb)
-	EXipReceivedV4ID   = uint16(0xc)
-	EXipReceivedV6ID   = uint16(0xd)
-	EXsamplerInfoID    = uint16(0x12)
-	EXinPayloadID      = uint16(0x1d)
-	EXnatXlateIPv4ID   = uint16(0x14)
-	EXnatXlateIPv6ID   = uint16(0x15)
-	EXnatXlatePortID   = uint16(0x16)
-	EXnatCommonID      = uint16(0x19)
-	EXnatPortBlockID   = uint16(0x1a)
-	EXflowIdID         = uint16(0x27)
-	EXnokiaNatID       = uint16(0x28)
-	EXnokiaNatStringID = uint16(0x29)
-	EXipInfoID         = uint16(0x2a)
+	EXnull			= uint(0x0)
+	EXgenericFlowID		= uint16(0x1)
+	EXipv4FlowID		= uint16(0x2)
+	EXipv6FlowID		= uint16(0x3)
+	EXflowMiscID		= uint16(0x4)
+	EXcntFlowID		= uint16(0x5)
+	EXvLanID		= uint16(0x6)
+	EXasRoutingID		= uint16(0x7)
+	EXbgpNextHopV4ID	= uint16(0x8)
+	EXbgpNextHopV6ID	= uint16(0x9)
+	EXipNextHopV4ID		= uint16(0xa)
+	EXipNextHopV6ID		= uint16(0xb)
+	EXipReceivedV4ID	= uint16(0xc)
+	EXipReceivedV6ID	= uint16(0xd)
+	EXsamplerInfoID		= uint16(0x12)
+	EXinPayloadID		= uint16(0x1d)
+	EXnatXlateIPv4ID	= uint16(0x14)
+	EXnatXlateIPv6ID	= uint16(0x15)
+	EXnatXlatePortID	= uint16(0x16)
+	EXnatCommonID		= uint16(0x19)
+	EXnatPortBlockID	= uint16(0x1a)
+	EXflowIdID		= uint16(0x27)
+	EXnokiaNatID		= uint16(0x28)
+	EXnokiaNatStringID	= uint16(0x29)
+	EXipInfoID		= uint16(0x2a)
 )
 
 const (
-	V3_FLAG_EVENT   = uint(0x1)
-	V3_FLAG_SAMPLED = uint(0x2)
-	V3_FLAG_ANON    = uint(0x4)
-	V3_FLAG_PASSED  = uint(0x80)
+	V3_FLAG_EVENT	= uint(0x1)
+	V3_FLAG_SAMPLED	= uint(0x2)
+	V3_FLAG_ANON	= uint(0x4)
+	FlagMF		= uint8(0x20)
+	FlagDF		= uint8(0x40)
 )
 
 const (
-	V3Record                = uint16(0xb)
-	ExporterInfoRecordType  = uint16(0x7)
-	ExporterStatRecordType  = uint16(0x8)
-	SamplerLegacyRecordType = uint16(0x9)
-	SamplerRecordType       = uint16(0xf)
+	V3Record		= uint16(0xb)
+	ExporterInfoRecordType	= uint16(0x7)
+	ExporterStatRecordType	= uint16(0x8)
+	SamplerLegacyRecordType	= uint16(0x9)
+	SamplerRecordType	= uint16(0xf)
 )
 
 const MAXEXTENSIONS = uint16(0x2b)
 
 type recordHeaderV3 struct {
-	Type        uint16
-	Size        uint16
-	NumElements uint16
-	EngineType  uint8
-	EngineID    uint8
-	ExporterID  uint16
-	Flags       uint8
-	Nfversion   uint8
+	Type		uint16
+	Size		uint16
+	NumElements	uint16
+	EngineType	uint8
+	EngineID	uint8
+	ExporterID	uint16
+	Flags		uint8
+	Nfversion	uint8
 }
 
 type EXgenericFlow struct {
-	MsecFirst    uint64
-	MsecLast     uint64
-	MsecReceived uint64
-	InPackets    uint64
-	InBytes      uint64
-	SrcPort      uint16
-	DstPort      uint16
-	Proto        uint8
-	TcpFlags     uint8
-	FwdStatus    uint8
-	SrcTos       uint8
+	MsecFirst	uint64
+	MsecLast	uint64
+	MsecReceived	uint64
+	InPackets	uint64
+	InBytes		uint64
+	SrcPort		uint16
+	DstPort		uint16
+	Proto		uint8
+	TcpFlags	uint8
+	FwdStatus	uint8
+	SrcTos		uint8
 }
 type EXflowMisc struct {
-	Input         uint32
-	Output        uint32
-	SrcMask       uint8
-	DstMask       uint8
-	Dir           uint8
-	DstTos        uint8
-	BiFlowDir     uint8
-	FlowEndReason uint8
-	Align         uint16
+	Input		uint32
+	Output		uint32
+	SrcMask		uint8
+	DstMask		uint8
+	Dir		uint8
+	DstTos		uint8
+	BiFlowDir	uint8
+	FlowEndReason	uint8
+	Align		uint16
 }
 type EXcntFlow struct {
-	Flows      uint64
-	OutPackets uint64
-	OutBytes   uint64
+	Flows		uint64
+	OutPackets	uint64
+	OutBytes	uint64
 }
 type EXvLan struct {
-	SrcVlan uint32
-	DstVlan uint32
+	SrcVlan	uint32
+	DstVlan	uint32
 }
 type EXasRouting struct {
-	SrcAS uint32
-	DstAS uint32
+	SrcAS	uint32
+	DstAS	uint32
 }
 type EXsamplerInfo struct {
-	SelectorID uint64
-	Sysid      uint16
-	Align      uint16
-	Pad_cgo_0  [4]byte
+	SelectorID	uint64
+	Sysid		uint16
+	Align		uint16
+	Pad_cgo_0	[4]byte
 }
 type EXnatXlatePort struct {
-	XlateSrcPort uint16
-	XlateDstPort uint16
+	XlateSrcPort	uint16
+	XlateDstPort	uint16
 }
 type EXnatCommon struct {
-	MsecEvent uint64
-	NatPoolID uint32
-	NatEvent  uint8
-	Fill1     uint8
-	Fill2     uint16
+	MsecEvent	uint64
+	NatPoolID	uint32
+	NatEvent	uint8
+	Fill1		uint8
+	Fill2		uint16
 }
 type EXnatPortBlock struct {
-	BlockStart uint16
-	BlockEnd   uint16
-	BlockStep  uint16
-	BlockSize  uint16
+	BlockStart	uint16
+	BlockEnd	uint16
+	BlockStep	uint16
+	BlockSize	uint16
 }
 type EXflowId struct {
 	FlowId uint64
 }
 type EXnokiaNat struct {
-	InServiceID  uint16
-	OutServiceID uint16
+	InServiceID	uint16
+	OutServiceID	uint16
 }
 type EXnokiaNatString string
 type EXipInfo struct {
-	Ttl           uint8
-	FragmentFlags uint8
-	Align         uint16
+	Fill		uint8
+	FragmentFlags	uint8
+	MinTTL		uint8
+	MaxTTL		uint8
 }
 
 type EXbgpNextHop struct {
@@ -150,27 +152,27 @@ type EXipReceived struct {
 }
 
 type EXnatXlateIP struct {
-	SrcXIP net.IP
-	DstXIP net.IP
+	SrcXIP	net.IP
+	DstXIP	net.IP
 }
 
 type EXinPayload []byte
 
 type ExporterInfoRecord struct {
-	Type    uint16
-	Size    uint16
-	Version uint32
-	Ip      [2]uint64
-	Family  uint16
-	Sysid   uint16
-	Id      uint32
+	Type	uint16
+	Size	uint16
+	Version	uint32
+	Ip	[2]uint64
+	Family	uint16
+	Sysid	uint16
+	Id	uint32
 }
 type SamplerRecord struct {
-	Type           uint16
-	Size           uint16
-	Sysid          uint16
-	Algorithm      uint16
-	Id             int64
-	PacketInterval uint32
-	SpaceInterval  uint32
+	Type		uint16
+	Size		uint16
+	Sysid		uint16
+	Algorithm	uint16
+	Id		int64
+	PacketInterval	uint32
+	SpaceInterval	uint32
 }
