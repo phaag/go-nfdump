@@ -4,16 +4,32 @@
 [![buildtest](https://github.com/phaag/go-nfdump/actions/workflows/go.yml/badge.svg)](https://github.com/phaag/go-nfdump/actions/workflows/go.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/phaag/go-nfdump)](https://goreportcard.com/report/github.com/phaag/go-nfdump)
 
-This Go module allows to read and process files created by [nfdump](https://github.com/phaag/nfdump), the netflow/ipfix/sflow collector and processing tools.
+`go-nfdump` reads and processes flow files written by [nfdump](https://github.com/phaag/nfdump).
 
-This module is experimental and does not yet decode all available nfdump record extensions. It reads and processes only nfdump v2 files, which are created by nfdump-1.7.x. Files created with nfdump-1.6.x are recogized but skipped for decoding.
+## Requirements and installation
 
-Expample to read and process a flow file:
+- Go 1.24 or later.
+- An nfdump V2 flow file written by nfdump 1.7.x.
 
+Add the module to an application with:
 
+```sh
+go get github.com/phaag/go-nfdump
+```
+
+## Supported files
+
+The module reads nfdump's V2 container and V3 flow records produced by nfdump 1.7.x. It supports uncompressed, LZO, Bzip2, LZ4, and ZSTD blocks.
+
+- nfdump 1.6.x/V1 files are recognized, but flow-record decoding is not supported.
+- nfdump 1.8.x files use a new V3 container and V4 flow-record format and are not supported yet.
+- Not every nfdump V3 extension has a Go accessor. Unknown extensions are skipped by the public API.
+
+## Read flow records
+
+The record stream is asynchronous. Check the error returned by `Get()` for an immediate failure, consume the channel, then call `Err()` to report a terminal read or decode failure.
 
 ```go
-
 package main
 
 import (
@@ -24,143 +40,104 @@ import (
 	nfdump "github.com/phaag/go-nfdump"
 )
 
-var (
-	fileName = flag.String("r", "", "nfdump file to read")
-)
-
 func main() {
-
-	flag.CommandLine.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage of %s [flags]\n", os.Args[0])
-		flag.PrintDefaults()
-	}
-
+	fileName := flag.String("r", "", "nfdump file to read")
 	flag.Parse()
-
-	if len(*fileName) == 0 {
-		fmt.Printf("Filename required\n")
+	if *fileName == "" {
 		flag.PrintDefaults()
-		os.Exit(255)
+		os.Exit(2)
 	}
 
-	nffile := nfdump.New()
+	nf := nfdump.New()
+	if err := nf.Open(*fileName); err != nil {
+		fmt.Fprintf(os.Stderr, "open flow file: %v\n", err)
+		os.Exit(1)
+	}
+	defer nf.Close()
 
-	if err := nffile.Open(*fileName); err != nil {
-		fmt.Printf("Failed to open nf file: %v\n", err)
-		os.Exit(255)
+	chain := nf.AllRecords()
+	records, err := chain.Get()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "start reading flows: %v\n", err)
+		os.Exit(1)
 	}
 
-	// print nffile stats
-	fmt.Printf("nffile:\n%v", nffile)
-
-	// Dump flow records
-	recordChannel, _ := nffile.AllRecords()
-	cnt := 0
-	for record := range recordChannel {
-		cnt++
-
-		// check IP addresses in record for IPv4, or IPv6
-		if record.IsIPv4() {
-			fmt.Printf("Record %d is IPv4\n", cnt)
-		} else if record.IsIPv6() {
-			fmt.Printf("Record %d is IPv6\n", cnt)
-		} else {
-			fmt.Printf("Record %d has no IPs\n", cnt)
+	for record := range records {
+		if generic := record.GenericFlow(); generic != nil {
+			fmt.Printf("%v:%d -> %v:%d proto=%d packets=%d bytes=%d\n",
+				record.IP().SrcIP, generic.SrcPort,
+				record.IP().DstIP, generic.DstPort,
+				generic.Proto, generic.InPackets, generic.InBytes)
 		}
-
-		// sampling
- 		packetInterval, spaceInterval := record.SamplerInfo(nffile)
-		fmt.Printf("Record sampler info: packet interval: %d, space interval: %d\n",
-               packetInterval, spaceInterval)
-    
-		// print the entire record using %v
-		fmt.Printf("%v\n", record)
-
-		// get generic extension and print ports
-		// see nfxV3.go for all fields in genericFlow
-		if genericFlow := record.GenericFlow(); genericFlow != nil {
-			fmt.Printf("SrcPort: %d\n", genericFlow.SrcPort)
-			fmt.Printf("DstPort: %d\n", genericFlow.DstPort)
-		}
-
-		// get src, dst ip address extension of record
-		// can contain IPv4 or IPv6
-		ipAddr := record.IP()
-		if ipAddr != nil {
-			// when printing as %v, Golang takes care about proper formating
-			// as IPv4 or IPv6
-			// see Golang standard library net.IP for more details to process IPs
-			fmt.Printf("SrcIP: %v\n", ipAddr.SrcIP)
-			fmt.Printf("DstIP: %v\n", ipAddr.DstIP)
-		}
-    
-    // get NAT xlate IP adresses
-    if natXlateIP = flowRecord.NatXlateIP(); natXlateIP != nil {
-      fmt.Sprintf("  SrcXlateIP  : %v\n", natXlateIP.SrcXIP)
-      fmt.Sprintf("  DstXlateIP  : %v\n", natXlateIP.DstXIP)
-    }
-    
-    // get NAT xlate ports
-    if natXlatePort := flowRecord.NatXlatePort(); natXlatePort != nil {
-      fmt.Printf("  Src X-Port  : %d\n", natXlatePort.XlateSrcPort)
-      fmt.Printf("  Dst X-Port  : %d\n", natXlatePort.XlateDstPort)
-    }
-  
-    // get nat port block and print
-    if natPortBlock := flowRecord.NatPortBlock(); natPortBlock != nil {
-      fmt.Printf("  NAT pstart  : %d\n", natPortBlock.BlockStart)
-			fmt.Printf("  NAT pend    : %d\n", natPortBlock.BlockEnd)
-			fmt.Printf("  NAT pstep   : %d\n", natPortBlock.BlockStep)
-			fmt.Printf("  NAT psize   : %d\n", natPortBlock.BlockSize)
-		}
- 
-    // get IP info extension
-    if ipInfo := flowRecord.IpInfo(); ipInfo != nil {
-      fmt.Pprintf("  IP ttl      : %d\n", ipInfo.Ttl)
-		  fmt.Pprintf("  IP fragment : %s%s\n", ipInfo.FragmentFlags)
-    }
-    
-		/*
-			// other extension
-			// see nfxV3.go for all fields in the respectiv records
-			// always check for nil return value as not every extension
-			// is available
-			flowMisc := record.FlowMisc()
-			cntFlow := record.CntFlow()
-			vLan := record.VLan()
-			asRouting := record.AsRouting()
-			bgpNextHop := record.BgpNextHop()
-			ipNextHop := record.IpNextHop()
-			
-			// please note, sampling contains only references to exporter list
-			// use record.SamplerInfo(nffile) to retrieve true sampling values
-			sampling := record.Sampling()
-		*/
 	}
-  
-	// retrieve exporter list *after* all records are processed
-	exporterList := nffile.GetExporterList()
-	fmt.Printf("Exporter list:\n")
-	for id, exporter := range exporterList {
-		if exporter.IP != nil && id == int(exporter.SysId) { // valid exporter
-			fmt.Printf("  SysID: %d, ID: %d, IP: %v, version: %d", 
-                 exporter.SysId, exporter.Id, exporter.IP, exporter.Version)
-			fmt.Printf(" Sequence failures: %d, packets: %d, flows: %d\n",
-                 exporter.SequenceFailures, exporter.Packets, exporter.Flows)
+	if err := chain.Err(); err != nil {
+		fmt.Fprintf(os.Stderr, "read flows: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Exporters and samplers are discovered while records are read.
+	for _, exporter := range nf.GetExporterList() {
+		if exporter.IP != nil {
+			fmt.Printf("exporter=%v id=%d flows=%d packets=%d\n",
+				exporter.IP, exporter.Id, exporter.Flows, exporter.Packets)
 		}
 	}
 }
 ```
 
-The `defs.go` file includes nfdump's `nfxV3.h` header file to convert individual record extensions into appropriate Golang records. So far the generic, misc, flowCount, vlan and asRouting extensions as well as IPv4/IPv6 addresses are available through the interface. See the nfxV3.go file for its definitions.
+`Open` reads the file metadata. Use `Ident()` for its identifier and `Stat()` for aggregate flow statistics. Always call `Close` when finished.
 
-If you modify the `defs.go` file, generate `nfxV3.go` use the go command
+## Record accessors
 
-`go generate ./...`
+Pointer and slice extension accessors return `nil` when the extension is absent. `IP()` returns an `EXip` value whose addresses may be `nil`, and `NokiaNatString()` returns an empty string when absent. The common flow-record accessors are:
 
-All available extensions are visible in `nfxV3.go`. 
+- `GenericFlow`, `IP`, `IsIPv4`, and `IsIPv6`
+- `FlowMisc`, `CntFlow`, `VLan`, and `AsRouting`
+- `BgpNextHop`, `IpNextHop`, and `IpReceived`
+- `Sampling` and `SamplerInfo`
+- `NatXlateIP`, `NatXlatePort`, `NatCommon`, and `NatPortBlock`
+- `Payload`, `FlowId`, `NokiaNat`, `NokiaNatString`, and `IpInfo`
 
-Please note, that the interface may be subject to change, as this module is work in progress.
+`SamplerInfo` returns the effective packet and space interval for a flow. Exporter and sampler information may appear while the file is streamed, so retrieve `GetExporterList()` only after the record channel is drained.
 
-More element data blocks will follow, including the famous nfdump filter engine.
-Please submit your pull requests and/or bug reports via [GitHub](https://github.com/phaag/go-nfdump/issues).
+`String()` provides a verbose representation of a `FlowRecordV3`; `PrintLine()` emits a compact flow line.
+
+## Sorting
+
+`OrderBy` buffers the complete input stream before returning records. It supports `"tstart"`, `"tend"`, `"packets"`, and `"bytes"`, with `nfdump.ASCENDING` or `nfdump.DESCENDING`.
+
+```go
+chain := nf.AllRecords().OrderBy("bytes", nfdump.DESCENDING)
+records, err := chain.Get()
+if err != nil {
+	// Handle an immediate error.
+}
+for record := range records {
+	_ = record
+}
+if err := chain.Err(); err != nil {
+	// Handle a terminal read or decode error.
+}
+```
+
+## Raw data blocks
+
+`ReadDataBlocks()` exposes decompressed Type-3 data blocks. It is intended for callers that need lower-level access than `AllRecords()`.
+
+```go
+blocks, err := nf.ReadDataBlocks()
+if err != nil {
+	// The file is not open.
+}
+for block := range blocks {
+	if block.Err != nil {
+		// Terminal I/O, validation, or decompression error.
+		break
+	}
+	// block.Header and block.Data contain the decompressed block.
+}
+```
+
+For the complete generated extension types, see [nfxV3.go](nfxV3.go). Changes to `defs.go` require regenerating those bindings with `go generate ./...`.
+
+This module is experimental; its API may evolve.

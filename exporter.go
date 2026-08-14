@@ -38,7 +38,10 @@ type Exporter struct {
 const MaxExporters = 256
 
 // Extract next flow record from []byte stream
-func (nfFile *NfFile) addExporterInfo(record []byte) {
+func (nfFile *NfFile) addExporterInfo(record []byte) error {
+	if len(record) < int(unsafe.Sizeof(ExporterInfoRecord{})) {
+		return fmt.Errorf("exporter info record too short: %d bytes", len(record))
+	}
 	exporterInfo := (*ExporterInfoRecord)(unsafe.Pointer(&record[0]))
 	var exporter Exporter
 	exporter.Id = exporterInfo.Id
@@ -46,7 +49,7 @@ func (nfFile *NfFile) addExporterInfo(record []byte) {
 	exporter.Version = uint16(exporterInfo.Version)
 
 	if int(exporter.SysId) >= MaxExporters {
-		fmt.Printf("Exporter SysID: %d out of range\n", exporter.SysId)
+		return fmt.Errorf("exporter SysID %d out of range", exporter.SysId)
 	}
 
 	for int(exporter.SysId) >= len(nfFile.ExporterList) {
@@ -65,16 +68,21 @@ func (nfFile *NfFile) addExporterInfo(record []byte) {
 		exporter.IP = net.IP{record[exOffset+7], record[exOffset+6], record[exOffset+5], record[exOffset+4], record[exOffset+3], record[exOffset+2], record[exOffset+1], record[exOffset+0], record[exOffset+15], record[exOffset+14], record[exOffset+13], record[exOffset+12], record[exOffset+11], record[exOffset+10], record[exOffset+9], record[exOffset+8]}
 	}
 	nfFile.ExporterList[exporter.SysId] = exporter
+	return nil
 }
 
-func (nfFile *NfFile) addExporterStat(record []byte) {
-	offset := 0
-	// recordType := binary.LittleEndian.Uint16(record[offset : offset+2])
-	// recordSize := binary.LittleEndian.Uint16(record[offset+2 : offset+4])
-	numStat := binary.LittleEndian.Uint16(record[offset+4 : offset+8])
-	// 	fmt.Printf("ExporterStat: type: %d, size: %d, numStats: %d\n", recordType, recordSize, numStat)
+func (nfFile *NfFile) addExporterStat(record []byte) error {
+	const statsHeaderSize = 8
+	const statSize = 24
+	if len(record) < statsHeaderSize {
+		return fmt.Errorf("exporter stat record too short: %d bytes", len(record))
+	}
+	numStat := binary.LittleEndian.Uint32(record[4:8])
+	if numStat == 0 || int(numStat) > (len(record)-statsHeaderSize)/statSize || len(record) != statsHeaderSize+int(numStat)*statSize {
+		return fmt.Errorf("invalid exporter stat count %d for %d bytes", numStat, len(record))
+	}
 
-	offset = 8
+	offset := statsHeaderSize
 	for i := 0; i < int(numStat); i++ {
 		sysId := binary.LittleEndian.Uint32(record[offset : offset+4])              // identifies the exporter
 		sequenceFailures := binary.LittleEndian.Uint32(record[offset+4 : offset+8]) // number of sequence failures
@@ -82,27 +90,28 @@ func (nfFile *NfFile) addExporterStat(record []byte) {
 		flows := binary.LittleEndian.Uint64(record[offset+16 : offset+24])          // number of flows sent by this exporter
 		offset += 24
 		if int(sysId) >= len(nfFile.ExporterList) {
-			fmt.Printf("Invalid Exporter id: %d\n", sysId)
-			return
+			return fmt.Errorf("invalid exporter ID: %d", sysId)
 		}
 		if nfFile.ExporterList[sysId].SysId == uint16(sysId) {
 			nfFile.ExporterList[sysId].SequenceFailures += sequenceFailures
 			nfFile.ExporterList[sysId].Packets += packets
 			nfFile.ExporterList[sysId].Flows += flows
 		} else {
-			fmt.Printf("Unknown Exporter id: %d\n", sysId)
+			return fmt.Errorf("unknown exporter ID: %d", sysId)
 		}
 	}
+	return nil
 }
 
-func (nfFile *NfFile) addSampler(record []byte) {
+func (nfFile *NfFile) addSampler(record []byte) error {
+	if len(record) < int(unsafe.Sizeof(SamplerRecord{})) {
+		return fmt.Errorf("sampler record too short: %d bytes", len(record))
+	}
 	samplerInfo := (*SamplerRecord)(unsafe.Pointer(&record[0]))
 
 	maxExporterID := len(nfFile.ExporterList)
 	if samplerInfo.Sysid >= uint16(maxExporterID) || nfFile.ExporterList[samplerInfo.Sysid].IP == nil {
-		// no valid exporter avilable
-		fmt.Printf("No valid exporter for new sampler\n")
-		return
+		return fmt.Errorf("no valid exporter for sampler")
 	}
 
 	nfFile.ExporterList[samplerInfo.Sysid].SamplerList = append(nfFile.ExporterList[samplerInfo.Sysid].SamplerList, Sampler{
@@ -112,6 +121,7 @@ func (nfFile *NfFile) addSampler(record []byte) {
 		SpaceInterval:  samplerInfo.SpaceInterval,
 	})
 
+	return nil
 }
 
 // Get exporter list

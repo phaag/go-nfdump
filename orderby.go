@@ -109,8 +109,8 @@ var orderTable = []orderOption{
 // returns chain element with channel of sorted records
 func (recordChain *RecordChain) OrderBy(orderBy string, direction int) *RecordChain {
 	// propagate error, if input void
-	if recordChain.err != nil {
-		return &RecordChain{recordChan: nil, err: recordChain.err}
+	if err := recordChain.Err(); err != nil {
+		return &RecordChain{recordChan: nil, err: err}
 	}
 
 	// get appropriate value function
@@ -128,9 +128,11 @@ func (recordChain *RecordChain) OrderBy(orderBy string, direction int) *RecordCh
 
 	// write the sorted records to this channel
 	writeChan := make(chan *FlowRecordV3, 128)
+	outChain := &RecordChain{recordChan: writeChan}
 
 	// fire off goroutine
 	go func(readChan chan *FlowRecordV3) {
+		defer close(writeChan)
 		// store all flow records into an array for later printing
 		// initial len - 1 meg
 		recordArray := make([]*FlowRecordV3, 1024*1024)
@@ -162,6 +164,10 @@ func (recordChain *RecordChain) OrderBy(orderBy string, direction int) *RecordCh
 			sortArray[cnt] = sortRecord{cnt, value}
 			cnt++
 		}
+		if err := recordChain.Err(); err != nil {
+			outChain.setErr(err)
+			return
+		}
 
 		// sort array
 		// the interface makes use of len() - therefore cut slice pointer to real size
@@ -180,11 +186,9 @@ func (recordChain *RecordChain) OrderBy(orderBy string, direction int) *RecordCh
 				writeChan <- record
 			}
 		}
-		close(writeChan)
-
 	}(recordChain.recordChan)
 
 	// return chain element
-	return &RecordChain{recordChan: writeChan, err: nil}
+	return outChain
 
 } // End of OrderBy

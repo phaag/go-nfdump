@@ -45,7 +45,12 @@ func main() {
 	fmt.Printf("nffile:\n%v", nffile)
 
 	// Dump flow records
-	recordChannel, _ := nffile.AllRecords().Get()
+	recordChain := nffile.AllRecords()
+	recordChannel, err := recordChain.Get()
+	if err != nil {
+		fmt.Printf("Failed to process flows: %v\n", err)
+		return
+	}
 	cnt := 0
 	for record := range recordChannel {
 		cnt++
@@ -105,6 +110,10 @@ func main() {
 			// use record.SamplerInfo(nffile) to retrieve true sampling values
 			sampling := record.Sampling()
 		*/
+	}
+	if err := recordChain.Err(); err != nil {
+		fmt.Printf("Failed to process flows: %v\n", err)
+		return
 	}
 
 	// retrieve exporter list *after* all records are processed

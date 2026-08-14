@@ -44,11 +44,15 @@ func main() {
 
 	// Read all flow records and append the OrderBy() processing
 	// finally get the flows and print them
-	if recordChannel, err := nffile.AllRecords().OrderBy("bytes", nfdump.DESCENDING).Get(); err != nil {
+	recordChain := nffile.AllRecords().OrderBy("bytes", nfdump.DESCENDING)
+	if recordChannel, err := recordChain.Get(); err != nil {
 		fmt.Printf("Failed to process flows: %v\n", err)
 	} else {
 		for record := range recordChannel {
 			record.PrintLine()
+		}
+		if err := recordChain.Err(); err != nil {
+			fmt.Printf("Failed to process flows: %v\n", err)
 		}
 	}
 }

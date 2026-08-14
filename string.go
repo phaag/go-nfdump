@@ -276,7 +276,6 @@ func (flowRecord *FlowRecordV3) dumpEXnatPortBlock() string {
 		return ""
 	}
 
-	fmt.Printf("Dump NAT PORT\n")
 	var s string = "" +
 		fmt.Sprintf("  NAT pstart  : %d\n", natPortBlock.BlockStart) +
 		fmt.Sprintf("  NAT pend    : %d\n", natPortBlock.BlockEnd) +
