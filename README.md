@@ -2,7 +2,6 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/phaag/go-nfdump.svg)](https://pkg.go.dev/github.com/phaag/go-nfdump)
 [![buildtest](https://github.com/phaag/go-nfdump/actions/workflows/go.yml/badge.svg)](https://github.com/phaag/go-nfdump/actions/workflows/go.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/phaag/go-nfdump)](https://goreportcard.com/report/github.com/phaag/go-nfdump)
 
 `go-nfdump` reads and processes flow files written by [nfdump](https://github.com/phaag/nfdump).
 
