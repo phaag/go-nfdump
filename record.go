@@ -79,6 +79,28 @@ func (recordChain *RecordChain) setErr(err error) {
 // - take a byte stream as input
 // returns a *FlowRecordV3 or an error
 func NewRecord(record []byte) (*FlowRecordV3, error) {
+	return parseRecord(record, true)
+}
+
+// Clone returns an independent copy of the record. Use it to retain a record
+// received from Walk after the callback returns.
+func (flowRecord *FlowRecordV3) Clone() (*FlowRecordV3, error) {
+	clone, err := NewRecord(flowRecord.rawRecord)
+	if err != nil {
+		return nil, err
+	}
+	clone.packetInterval = flowRecord.packetInterval
+	clone.spaceInterval = flowRecord.spaceInterval
+	return clone, nil
+}
+
+// newRecordView parses a record without copying its bytes. It is used by Walk,
+// where the record is only valid while the callback is running.
+func newRecordView(record []byte) (*FlowRecordV3, error) {
+	return parseRecord(record, false)
+}
+
+func parseRecord(record []byte, copyRecord bool) (*FlowRecordV3, error) {
 	const recordHeaderSize = 12
 	if len(record) < recordHeaderSize {
 		return nil, fmt.Errorf("record too short: %d bytes", len(record))
@@ -97,8 +119,12 @@ func NewRecord(record []byte) (*FlowRecordV3, error) {
 	}
 
 	flowRecord := new(FlowRecordV3)
-	flowRecord.rawRecord = make([]byte, recordSize)
-	copy(flowRecord.rawRecord, record)
+	if copyRecord {
+		flowRecord.rawRecord = make([]byte, recordSize)
+		copy(flowRecord.rawRecord, record)
+	} else {
+		flowRecord.rawRecord = record
+	}
 	raw := flowRecord.rawRecord
 
 	flowRecord.recordHeader = (*recordHeaderV3)(unsafe.Pointer(&raw[0]))

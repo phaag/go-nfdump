@@ -1,4 +1,4 @@
-// Copyright © 2024 Peter Haag peter@people.ops-trust.net
+// Copyright © 2024-2026 Peter Haag peter@people.ops-trust.net
 // All rights reserved.
 //
 // Use of this source code is governed by the license that can be
@@ -9,15 +9,20 @@ package nfdump
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"fmt"
 	"io"
 	"os"
+	"sync"
 
 	zstd "github.com/klauspost/compress/zstd"
 )
 
 type NfFile struct {
+	readMu       sync.Mutex
+	stateMu      sync.Mutex
+	readCancel   context.CancelFunc
 	file         *os.File
 	Header       NfFileHeader
 	ident        string
@@ -225,8 +230,12 @@ func (nfFile *NfFile) readAppendix() error {
 
 // Open opens an nffile given as string argument
 func (nfFile *NfFile) Open(fileName string) error {
+	nfFile.cancelRead()
+	nfFile.readMu.Lock()
+	defer nfFile.readMu.Unlock()
+
 	if nfFile.file != nil {
-		if err := nfFile.Close(); err != nil {
+		if err := nfFile.close(); err != nil {
 			return fmt.Errorf("nfFile close previous file: %w", err)
 		}
 	}
@@ -278,7 +287,7 @@ func (nfFile *NfFile) Open(fileName string) error {
 		return nfFile.openV1()
 	case 2:
 		if err := nfFile.readAppendix(); err != nil {
-			nfFile.Close()
+			nfFile.close()
 			return err
 		}
 		return nil
@@ -292,6 +301,13 @@ func (nfFile *NfFile) Open(fileName string) error {
 
 // Closes the current underlaying file
 func (nfFile *NfFile) Close() error {
+	nfFile.cancelRead()
+	nfFile.readMu.Lock()
+	defer nfFile.readMu.Unlock()
+	return nfFile.close()
+}
+
+func (nfFile *NfFile) close() error {
 	if nfFile.zstdDecoder != nil {
 		nfFile.zstdDecoder.Close()
 		nfFile.zstdDecoder = nil
@@ -302,6 +318,27 @@ func (nfFile *NfFile) Close() error {
 	err := nfFile.file.Close()
 	nfFile.file = nil
 	return err
+}
+
+func (nfFile *NfFile) setReadCancel(cancel context.CancelFunc) {
+	nfFile.stateMu.Lock()
+	nfFile.readCancel = cancel
+	nfFile.stateMu.Unlock()
+}
+
+func (nfFile *NfFile) clearReadCancel() {
+	nfFile.stateMu.Lock()
+	nfFile.readCancel = nil
+	nfFile.stateMu.Unlock()
+}
+
+func (nfFile *NfFile) cancelRead() {
+	nfFile.stateMu.Lock()
+	cancel := nfFile.readCancel
+	nfFile.stateMu.Unlock()
+	if cancel != nil {
+		cancel()
+	}
 }
 
 // Ident returns the identifier of the current NfFile object
@@ -318,43 +355,64 @@ func (nfFile *NfFile) Stat() StatRecord {
 // A channel with all uncompressed data blocks is returned.
 func (nfFile *NfFile) ReadDataBlocks() (chan DataBlock, error) {
 	blockChannel := make(chan DataBlock, 16)
+	nfFile.readMu.Lock()
 	if nfFile.file == nil {
+		nfFile.readMu.Unlock()
 		close(blockChannel)
 		return blockChannel, fmt.Errorf("nfFile read data blocks: no open file")
 	}
+	ctx, cancel := context.WithCancel(context.Background())
+	nfFile.setReadCancel(cancel)
 	go func() {
+		defer cancel()
+		defer nfFile.clearReadCancel()
+		defer nfFile.readMu.Unlock()
 		defer close(blockChannel)
-		fail := func(err error) {
-			blockChannel <- DataBlock{Err: err}
-		}
-		for i := 0; i < int(nfFile.Header.NumBlocks); i++ {
-			dataBlock := DataBlock{}
-			if err := binary.Read(nfFile.file, binary.LittleEndian, &dataBlock.Header); err != nil {
-				fail(fmt.Errorf("read data block %d header: %w", i, err))
-				return
+		if err := nfFile.readDataBlocks(ctx, blockChannel); err != nil && ctx.Err() == nil {
+			select {
+			case blockChannel <- DataBlock{Err: err}:
+			case <-ctx.Done():
 			}
-			if dataBlock.Header.Size > nfFile.blockSizeLimit() {
-				fail(fmt.Errorf("read data block %d: size %d exceeds block size %d", i, dataBlock.Header.Size, nfFile.blockSizeLimit()))
-				return
-			}
-			// fmt.Printf("Datablock type: %d, size: %d records: %d\n", dataBlock.Header.Type, dataBlock.Header.Size, dataBlock.Header.NumRecords)
-			if dataBlock.Header.Type != 3 {
-				if _, err := nfFile.file.Seek(int64(dataBlock.Header.Size), io.SeekCurrent); err != nil {
-					fail(fmt.Errorf("skip data block %d: %w", i, err))
-					return
-				}
-				continue
-			}
-			var err error
-			dataBlock.Data, err = nfFile.uncompressBlock(&dataBlock.Header)
-			if err != nil {
-				fail(fmt.Errorf("read data block %d: %w", i, err))
-				return
-			}
-			blockChannel <- dataBlock
 		}
 	}()
 	return blockChannel, nil
+}
+
+// readDataBlocks reads and decompresses Type-3 blocks into blockChannel. The
+// caller owns the file-read lock and is responsible for closing blockChannel.
+func (nfFile *NfFile) readDataBlocks(ctx context.Context, blockChannel chan<- DataBlock) error {
+	for i := 0; i < int(nfFile.Header.NumBlocks); i++ {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		dataBlock := DataBlock{}
+		if err := binary.Read(nfFile.file, binary.LittleEndian, &dataBlock.Header); err != nil {
+			return fmt.Errorf("read data block %d header: %w", i, err)
+		}
+		if dataBlock.Header.Size > nfFile.blockSizeLimit() {
+			return fmt.Errorf("read data block %d: size %d exceeds block size %d", i, dataBlock.Header.Size, nfFile.blockSizeLimit())
+		}
+		if dataBlock.Header.Type != 3 {
+			if _, err := nfFile.file.Seek(int64(dataBlock.Header.Size), io.SeekCurrent); err != nil {
+				return fmt.Errorf("skip data block %d: %w", i, err)
+			}
+			continue
+		}
+
+		var err error
+		dataBlock.Data, err = nfFile.uncompressBlock(&dataBlock.Header)
+		if err != nil {
+			return fmt.Errorf("read data block %d: %w", i, err)
+		}
+
+		select {
+		case blockChannel <- dataBlock:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	return nil
 }
 
 // function to retrieve all records from nfFile handle.
@@ -378,61 +436,127 @@ func (nfFile *NfFile) AllRecords() *RecordChain {
 				chain.setErr(dataBlock.Err)
 				return
 			}
-			if int(dataBlock.Header.Size) != len(dataBlock.Data) {
-				chain.setErr(fmt.Errorf("data block size mismatch: header %d, data %d", dataBlock.Header.Size, len(dataBlock.Data)))
-				return
-			}
-			// fmt.Printf("Next block - type: %d, records: %d, size: %d\n", dataBlock.Header.Type, dataBlock.Header.NumRecords, dataBlock.Header.Size)
-			offset := 0
-			for i := 0; i < int(dataBlock.Header.NumRecords); i++ {
-				if len(dataBlock.Data)-offset < binary.Size(recordHeader{}) {
-					chain.setErr(fmt.Errorf("data block record %d: truncated record header", i))
-					return
-				}
-				recordType := binary.LittleEndian.Uint16(dataBlock.Data[offset : offset+2])
-				recordSize := binary.LittleEndian.Uint16(dataBlock.Data[offset+2 : offset+4])
-				if recordSize < uint16(binary.Size(recordHeader{})) || int(recordSize) > len(dataBlock.Data)-offset {
-					chain.setErr(fmt.Errorf("data block record %d: invalid size %d", i, recordSize))
-					return
-				}
-				recordData := dataBlock.Data[offset : offset+int(recordSize)]
-				// numElementS := binary.LittleEndian.Uint16(dataBlock.Data[offset+4 : offset+6])
-				// fmt.Printf("Record %d type: %d, length: %d, numElementS: %d\n", i, recordType, recordSize, numElementS)
-				switch recordType {
-				case V3Record:
-					if record, err := NewRecord(recordData); err == nil {
-						record.GetSamplerInfo(nfFile)
-						recordChannel <- record
-					} else {
-						chain.setErr(fmt.Errorf("data block record %d: %w", i, err))
-						return
-					}
-				case ExporterInfoRecordType:
-					if err := nfFile.addExporterInfo(recordData); err != nil {
-						chain.setErr(fmt.Errorf("data block record %d: %w", i, err))
-						return
-					}
-				case ExporterStatRecordType:
-					if err := nfFile.addExporterStat(recordData); err != nil {
-						chain.setErr(fmt.Errorf("data block record %d: %w", i, err))
-						return
-					}
-				case SamplerLegacyRecordType:
-					// not processed for now
-				case SamplerRecordType:
-					if err := nfFile.addSampler(recordData); err != nil {
-						chain.setErr(fmt.Errorf("data block record %d: %w", i, err))
-						return
-					}
-				}
-
-				offset += int(recordSize)
-			}
-			if offset != len(dataBlock.Data) {
-				chain.setErr(fmt.Errorf("data block record count %d does not consume block data", dataBlock.Header.NumRecords))
+			if err := nfFile.processDataBlock(dataBlock, NewRecord, func(record *FlowRecordV3) error {
+				recordChannel <- record
+				return nil
+			}); err != nil {
+				chain.setErr(err)
 				return
 			}
 		}
 	}()
 	return chain
+}
+
+// Walk reads flow records while a single producer goroutine prefetches and
+// decompresses upcoming blocks. fn runs in the caller's goroutine. Records are
+// views of the current block and must be copied with Clone before retaining
+// them after fn returns.
+func (nfFile *NfFile) Walk(ctx context.Context, fn func(*FlowRecordV3) error) error {
+	if ctx == nil {
+		return fmt.Errorf("nfFile walk: nil context")
+	}
+	if fn == nil {
+		return fmt.Errorf("nfFile walk: nil callback")
+	}
+
+	nfFile.readMu.Lock()
+	if nfFile.file == nil {
+		nfFile.readMu.Unlock()
+		return fmt.Errorf("nfFile walk: no open file")
+	}
+
+	walkCtx, cancel := context.WithCancel(ctx)
+	nfFile.setReadCancel(cancel)
+	blockChannel := make(chan DataBlock, 2)
+	producerDone := make(chan error, 1)
+	go func() {
+		defer close(blockChannel)
+		producerDone <- nfFile.readDataBlocks(walkCtx, blockChannel)
+	}()
+
+	var walkErr error
+	for dataBlock := range blockChannel {
+		if err := ctx.Err(); err != nil {
+			walkErr = err
+			cancel()
+			break
+		}
+		walkErr = nfFile.processDataBlock(dataBlock, newRecordView, func(record *FlowRecordV3) error {
+			if err := walkCtx.Err(); err != nil {
+				return err
+			}
+			return fn(record)
+		})
+		if walkErr != nil {
+			cancel()
+			break
+		}
+	}
+	cancel()
+	producerErr := <-producerDone
+	nfFile.clearReadCancel()
+	nfFile.readMu.Unlock()
+
+	if walkErr != nil {
+		return walkErr
+	}
+	if producerErr != nil {
+		return producerErr
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (nfFile *NfFile) processDataBlock(dataBlock DataBlock, makeRecord func([]byte) (*FlowRecordV3, error), handleRecord func(*FlowRecordV3) error) error {
+	if int(dataBlock.Header.Size) != len(dataBlock.Data) {
+		return fmt.Errorf("data block size mismatch: header %d, data %d", dataBlock.Header.Size, len(dataBlock.Data))
+	}
+
+	offset := 0
+	for i := 0; i < int(dataBlock.Header.NumRecords); i++ {
+		if len(dataBlock.Data)-offset < binary.Size(recordHeader{}) {
+			return fmt.Errorf("data block record %d: truncated record header", i)
+		}
+		recordType := binary.LittleEndian.Uint16(dataBlock.Data[offset : offset+2])
+		recordSize := binary.LittleEndian.Uint16(dataBlock.Data[offset+2 : offset+4])
+		if recordSize < uint16(binary.Size(recordHeader{})) || int(recordSize) > len(dataBlock.Data)-offset {
+			return fmt.Errorf("data block record %d: invalid size %d", i, recordSize)
+		}
+		recordData := dataBlock.Data[offset : offset+int(recordSize)]
+
+		switch recordType {
+		case V3Record:
+			record, err := makeRecord(recordData)
+			if err != nil {
+				return fmt.Errorf("data block record %d: %w", i, err)
+			}
+			record.GetSamplerInfo(nfFile)
+			if err := handleRecord(record); err != nil {
+				return err
+			}
+		case ExporterInfoRecordType:
+			if err := nfFile.addExporterInfo(recordData); err != nil {
+				return fmt.Errorf("data block record %d: %w", i, err)
+			}
+		case ExporterStatRecordType:
+			if err := nfFile.addExporterStat(recordData); err != nil {
+				return fmt.Errorf("data block record %d: %w", i, err)
+			}
+		case SamplerLegacyRecordType:
+			// Not processed for now.
+		case SamplerRecordType:
+			if err := nfFile.addSampler(recordData); err != nil {
+				return fmt.Errorf("data block record %d: %w", i, err)
+			}
+		}
+
+		offset += int(recordSize)
+	}
+	if offset != len(dataBlock.Data) {
+		return fmt.Errorf("data block record count %d does not consume block data", dataBlock.Header.NumRecords)
+	}
+	return nil
 }

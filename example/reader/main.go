@@ -7,6 +7,7 @@
 package main
 
 import (
+	"context"
 	"encoding/hex"
 	"flag"
 	"fmt"
@@ -40,19 +41,15 @@ func main() {
 		fmt.Printf("Failed to open nf file: %v\n", err)
 		os.Exit(255)
 	}
+	defer nffile.Close()
 
 	// print nffile stats
 	fmt.Printf("nffile:\n%v", nffile)
 
-	// Dump flow records
-	recordChain := nffile.AllRecords()
-	recordChannel, err := recordChain.Get()
-	if err != nil {
-		fmt.Printf("Failed to process flows: %v\n", err)
-		return
-	}
+	// Walk is the efficient streaming API. One goroutine reads and
+	// decompresses upcoming blocks while this callback processes each flow.
 	cnt := 0
-	for record := range recordChannel {
+	err := nffile.Walk(context.Background(), func(record *nfdump.FlowRecordV3) error {
 		cnt++
 
 		// check IP addresses in record for IPv4, or IPv6
@@ -110,13 +107,15 @@ func main() {
 			// use record.SamplerInfo(nffile) to retrieve true sampling values
 			sampling := record.Sampling()
 		*/
-	}
-	if err := recordChain.Err(); err != nil {
+		return nil
+	})
+	if err != nil {
 		fmt.Printf("Failed to process flows: %v\n", err)
 		return
 	}
 
-	// retrieve exporter list *after* all records are processed
+	// Retrieve exporters only after Walk completes, as they are discovered
+	// while records are processed.
 	exporterList := nffile.GetExporterList()
 	fmt.Printf("Exporter list:\n")
 	for id, exporter := range exporterList {

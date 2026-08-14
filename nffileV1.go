@@ -81,12 +81,12 @@ func (nfFile *NfFile) openV1() error {
 
 	nfFile.file.Seek(0, io.SeekStart)
 	if err := binary.Read(nfFile.file, binary.LittleEndian, &nfFileV1Header); err != nil {
-		nfFile.Close()
+		nfFile.close()
 		return fmt.Errorf("nfFile read V1 header: %v", err)
 	}
 
 	if err := binary.Read(nfFile.file, binary.LittleEndian, &statRecordV1); err != nil {
-		nfFile.Close()
+		nfFile.close()
 		return fmt.Errorf("nfFile read header: %v", err)
 	}
 

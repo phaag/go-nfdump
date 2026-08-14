@@ -26,6 +26,30 @@ The module reads nfdump's V2 container and V3 flow records produced by nfdump 1.
 
 ## Read flow records
 
+For efficient sequential processing, use `Walk`. One producer goroutine reads
+and decompresses blocks while the callback processes the preceding block. The
+callback runs in the calling goroutine, flow order is preserved, and at most two
+decoded blocks are queued. A record is a view of the current block; call
+`record.Clone()` if it must be retained after the callback returns.
+
+```go
+err := nf.Walk(context.Background(), func(record *nfdump.FlowRecordV3) error {
+	if generic := record.GenericFlow(); generic != nil {
+		fmt.Printf("%d packets\n", generic.InPackets)
+	}
+	return nil // Return an error to stop processing.
+})
+if err != nil {
+	// Handle I/O, decoding, context, or callback errors.
+}
+```
+
+`Walk` and `Close` coordinate safely. Do not start a second read operation on
+the same `NfFile` until `Walk` returns.
+
+The asynchronous channel API below remains available for compatibility. Drain
+its channel before calling `Close`.
+
 The record stream is asynchronous. Check the error returned by `Get()` for an immediate failure, consume the channel, then call `Err()` to report a terminal read or decode failure.
 
 ```go

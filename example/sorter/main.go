@@ -41,9 +41,10 @@ func main() {
 		fmt.Printf("Failed to open nf file: %v\n", err)
 		os.Exit(255)
 	}
+	defer nffile.Close()
 
-	// Read all flow records and append the OrderBy() processing
-	// finally get the flows and print them
+	// Sorting retains every record, so use the legacy owned-record stream rather
+	// than Walk's short-lived record views.
 	recordChain := nffile.AllRecords().OrderBy("bytes", nfdump.DESCENDING)
 	if recordChannel, err := recordChain.Get(); err != nil {
 		fmt.Printf("Failed to process flows: %v\n", err)
