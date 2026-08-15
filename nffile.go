@@ -436,7 +436,12 @@ func (nfFile *NfFile) AllRecords() *RecordChain {
 				chain.setErr(dataBlock.Err)
 				return
 			}
-			if err := nfFile.processDataBlock(dataBlock, NewRecord, func(record *FlowRecordV3) error {
+			if err := nfFile.processDataBlock(dataBlock, func(raw []byte) error {
+				record, err := NewRecord(raw)
+				if err != nil {
+					return err
+				}
+				record.GetSamplerInfo(nfFile)
 				recordChannel <- record
 				return nil
 			}); err != nil {
@@ -450,9 +455,9 @@ func (nfFile *NfFile) AllRecords() *RecordChain {
 
 // Walk reads flow records while a single producer goroutine prefetches and
 // decompresses upcoming blocks. fn runs in the caller's goroutine. Records are
-// views of the current block and must be copied with Clone before retaining
+// compact views of the current block and must be copied with Clone before retaining
 // them after fn returns.
-func (nfFile *NfFile) Walk(ctx context.Context, fn func(*FlowRecordV3) error) error {
+func (nfFile *NfFile) Walk(ctx context.Context, fn func(FlowRecord) error) error {
 	if ctx == nil {
 		return fmt.Errorf("nfFile walk: nil context")
 	}
@@ -482,8 +487,12 @@ func (nfFile *NfFile) Walk(ctx context.Context, fn func(*FlowRecordV3) error) er
 			cancel()
 			break
 		}
-		walkErr = nfFile.processDataBlock(dataBlock, newRecordView, func(record *FlowRecordV3) error {
+		walkErr = nfFile.processDataBlock(dataBlock, func(raw []byte) error {
 			if err := walkCtx.Err(); err != nil {
+				return err
+			}
+			record, err := newFlowRecordV3(raw)
+			if err != nil {
 				return err
 			}
 			return fn(record)
@@ -510,7 +519,7 @@ func (nfFile *NfFile) Walk(ctx context.Context, fn func(*FlowRecordV3) error) er
 	return nil
 }
 
-func (nfFile *NfFile) processDataBlock(dataBlock DataBlock, makeRecord func([]byte) (*FlowRecordV3, error), handleRecord func(*FlowRecordV3) error) error {
+func (nfFile *NfFile) processDataBlock(dataBlock DataBlock, handleFlow func([]byte) error) error {
 	if int(dataBlock.Header.Size) != len(dataBlock.Data) {
 		return fmt.Errorf("data block size mismatch: header %d, data %d", dataBlock.Header.Size, len(dataBlock.Data))
 	}
@@ -529,13 +538,8 @@ func (nfFile *NfFile) processDataBlock(dataBlock DataBlock, makeRecord func([]by
 
 		switch recordType {
 		case V3Record:
-			record, err := makeRecord(recordData)
-			if err != nil {
+			if err := handleFlow(recordData); err != nil {
 				return fmt.Errorf("data block record %d: %w", i, err)
-			}
-			record.GetSamplerInfo(nfFile)
-			if err := handleRecord(record); err != nil {
-				return err
 			}
 		case ExporterInfoRecordType:
 			if err := nfFile.addExporterInfo(recordData); err != nil {

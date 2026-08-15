@@ -33,8 +33,8 @@ decoded blocks are queued. A record is a view of the current block; call
 `record.Clone()` if it must be retained after the callback returns.
 
 ```go
-err := nf.Walk(context.Background(), func(record *nfdump.FlowRecordV3) error {
-	if generic := record.GenericFlow(); generic != nil {
+err := nf.Walk(context.Background(), func(record nfdump.FlowRecord) error {
+	if generic, ok := record.Generic(); ok {
 		fmt.Printf("%d packets\n", generic.InPackets)
 	}
 	return nil // Return an error to stop processing.
@@ -43,6 +43,17 @@ if err != nil {
 	// Handle I/O, decoding, context, or callback errors.
 }
 ```
+
+`Walk` uses the compact, version-neutral `FlowRecord` API. For 1.7.x files,
+`Generic()` returns timestamps, counters, ports, and protocol fields, while
+`IP()` returns `netip.Addr` source and destination addresses. `Format()`,
+`ExporterID()`, `Flags()`, `NetFlowVersion()`, `Engine()`, `IsIPv4()`, and
+`IsIPv6()` provide record metadata. `Extension(id)` exposes a read-only raw
+extension payload for fields that do not yet have a native accessor.
+
+`AllRecords` remains the legacy API. It produces owned `*FlowRecordV3` values
+and exposes the generated V3 extension structs; use it where that compatibility
+or `OrderBy` is required.
 
 `Walk` and `Close` coordinate safely. Do not start a second read operation on
 the same `NfFile` until `Walk` returns.

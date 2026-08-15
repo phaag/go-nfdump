@@ -82,8 +82,7 @@ func NewRecord(record []byte) (*FlowRecordV3, error) {
 	return parseRecord(record, true)
 }
 
-// Clone returns an independent copy of the record. Use it to retain a record
-// received from Walk after the callback returns.
+// Clone returns an independent copy of a legacy owned record.
 func (flowRecord *FlowRecordV3) Clone() (*FlowRecordV3, error) {
 	clone, err := NewRecord(flowRecord.rawRecord)
 	if err != nil {
@@ -92,12 +91,6 @@ func (flowRecord *FlowRecordV3) Clone() (*FlowRecordV3, error) {
 	clone.packetInterval = flowRecord.packetInterval
 	clone.spaceInterval = flowRecord.spaceInterval
 	return clone, nil
-}
-
-// newRecordView parses a record without copying its bytes. It is used by Walk,
-// where the record is only valid while the callback is running.
-func newRecordView(record []byte) (*FlowRecordV3, error) {
-	return parseRecord(record, false)
 }
 
 func parseRecord(record []byte, copyRecord bool) (*FlowRecordV3, error) {

@@ -49,7 +49,7 @@ func main() {
 	// Walk is the efficient streaming API. One goroutine reads and
 	// decompresses upcoming blocks while this callback processes each flow.
 	cnt := 0
-	err := nffile.Walk(context.Background(), func(record *nfdump.FlowRecordV3) error {
+	err := nffile.Walk(context.Background(), func(record nfdump.FlowRecord) error {
 		cnt++
 
 		// check IP addresses in record for IPv4, or IPv6
@@ -61,51 +61,24 @@ func main() {
 			fmt.Printf("Record %d has no IPs\n", cnt)
 		}
 
-		// sampling
-		packetInterval, spaceInterval := record.SamplerInfo(nffile)
-		fmt.Printf("Record sampler info: packet interval: %d, space interval: %d\n", packetInterval, spaceInterval)
-
-		// print the entire record using %v
-		fmt.Printf("%v\n", record)
-
-		// get generic extension and print ports
-		// see nfxV3.go for all fields in genericFlow
-		if genericFlow := record.GenericFlow(); genericFlow != nil {
+		// The compact API returns Go values rather than C-layout pointers.
+		if genericFlow, ok := record.Generic(); ok {
 			fmt.Printf("SrcPort: %d\n", genericFlow.SrcPort)
 			fmt.Printf("DstPort: %d\n", genericFlow.DstPort)
 		}
 
-		// get src, dst ip address extension of record
-		// can contain IPv4 or IPv6
-		ipAddr := record.IP()
-		if ipAddr != nil {
-			// when printing as %v, Golang takes care about proper formating
-			// as IPv4 or IPv6
-			// see Golang standard library net.IP for more details to process IPs
-			fmt.Printf("SrcIP: %v\n", ipAddr.SrcIP)
-			fmt.Printf("DstIP: %v\n", ipAddr.DstIP)
+		if srcIP, dstIP, ok := record.IP(); ok {
+			fmt.Printf("SrcIP: %v\n", srcIP)
+			fmt.Printf("DstIP: %v\n", dstIP)
 		}
 
-		// get payload extension
-		if payload := record.Payload(); payload != nil {
+		if payload := record.Extension(nfdump.EXinPayloadID); payload != nil {
 			fmt.Printf("Payload length: %d\n", len(payload))
 			fmt.Printf("%s", hex.Dump(payload))
 		}
 		/*
-			// other extension
-			// see nfxV3.go for all fields in the respectiv records
-			// always check for nil return value as not every extension
-			// is available
-			flowMisc := record.FlowMisc()
-			cntFlow := record.CntFlow()
-			vLan := record.VLan()
-			asRouting := record.AsRouting()
-			bgpNextHop := record.BgpNextHop()
-			ipNextHop := record.IpNextHop()
-
-			// please note, sampling contains only references to exporter list
-			// use record.SamplerInfo(nffile) to retrieve true sampling values
-			sampling := record.Sampling()
+			// Extension returns the raw payload for less common fields. The payload
+			// is valid only until this callback returns; call record.Clone() to keep it.
 		*/
 		return nil
 	})
