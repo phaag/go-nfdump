@@ -213,4 +213,4 @@ Development can be supported through [GitHub Sponsors](https://github.com/sponso
 
 ## License
 
-go-nfdump is distributed under the BSD 2-Clause [License](https://github.com/phaag/go-nfdump/blob/main/LICENSE)
+go-nfdump is distributed under the BSD 3-Clause [License](https://github.com/phaag/go-nfdump/blob/main/LICENSE)
