@@ -1,4 +1,3 @@
-//go:generate sh -c "go tool cgo -godefs defs.go >nfxV3.go"
 
 // Copyright © 2024 Peter Haag peter@people.ops-trust.net
 // All rights reserved.

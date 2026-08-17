@@ -197,6 +197,14 @@ func (nfFile *NfFile) Open(fileName string) error {
 		}
 		nfFile.reader = reader
 		return nil
+	case 3:
+		reader, err := openV18Reader(nfFile, file, fileName)
+		if err != nil {
+			file.Close()
+			return err
+		}
+		nfFile.reader = reader
+		return nil
 	default:
 		file.Close()
 		return unsupportedError{operation: "open", layout: FileLayout(prefix.Version)}

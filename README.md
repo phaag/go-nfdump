@@ -8,7 +8,10 @@
 ## Requirements and installation
 
 - Go 1.24 or later.
-- An nfdump V2 flow file written by nfdump 1.7.x.
+- An nfdump V2 (1.7.x) or unencrypted V3 (1.8.x) flow file to read.
+
+The module is pure Go: it does not require cgo, a C compiler, or nfdump C
+headers at build time.
 
 Add the module to an application with:
 
@@ -18,11 +21,17 @@ go get github.com/phaag/go-nfdump
 
 ## Supported files
 
-The module reads nfdump's V2 container and V3 flow records produced by nfdump 1.7.x. It supports uncompressed, LZO, Bzip2, LZ4, and ZSTD blocks.
+The module transparently reads nfdump 1.7.x V2 containers with V3 flow
+records and nfdump 1.8.x V3 containers with V4 flow records. Both use the
+same `Walk` callback and `FlowRecord` accessors. It supports uncompressed,
+LZO, Bzip2, LZ4, and ZSTD blocks.
 
 - nfdump 1.6.x/V1 files are recognized, but flow-record decoding is not supported.
-- nfdump 1.8.x files use a new V3 container and V4 flow-record format and are not supported yet.
-- Not every nfdump V3 extension has a Go accessor. Unknown extensions are skipped by the public API.
+- Encrypted nfdump 1.8.x files are not supported yet.
+- The generic `Walk` API provides common V3/V4 extensions: generic flow,
+  IPv4/IPv6 addresses, flow misc, counters, VLAN, AS information, input
+  payload, and IP information. Other extensions remain accessible through the
+  legacy 1.7.x API where available.
 
 ## Read flow records
 
@@ -144,6 +153,20 @@ Pointer and slice extension accessors return `nil` when the extension is absent.
 
 `String()` provides a verbose representation of a `FlowRecordV3`; `PrintLine()` emits a compact flow line.
 
+## Benchmarks
+
+The opt-in `Walk` benchmarks compare representative 1.7.x and 1.8.x files
+without committing large binary fixtures. Set both paths and run:
+
+```sh
+NFDUMP_BENCH_V2=/path/to/1.7.nf \
+NFDUMP_BENCH_V3=/path/to/1.8.nf \
+go test -run '^$' -bench '^BenchmarkWalkV' -benchtime=3x -count=3
+```
+
+`Count` measures streaming delivery; `GenericIP` includes the usual generic
+and address extension lookups. File open and close time are excluded.
+
 ## Sorting
 
 `OrderBy` buffers the complete input stream before returning records. It supports `"tstart"`, `"tend"`, `"packets"`, and `"bytes"`, with `nfdump.ASCENDING` or `nfdump.DESCENDING`.
@@ -180,6 +203,12 @@ for block := range blocks {
 }
 ```
 
-For the complete generated extension types, see [nfxV3.go](nfxV3.go). Changes to `defs.go` require regenerating those bindings with `go generate ./...`.
-
 This module is experimental; its API may evolve.
+
+## Sponsorship
+
+Development can be supported through [GitHub Sponsors](https://github.com/sponsors/phaag). Any sponsoring is appreciated.
+
+## License
+
+go-nfdump is distributed under the BSD 2-Clause [License](https://github.com/phaag/go-nfdump/blob/main/LICENSE)
