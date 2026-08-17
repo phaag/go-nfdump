@@ -51,6 +51,13 @@ type v18Reader struct {
 	header      v18Header
 	entries     []v18DirectoryEntry
 	zstdDecoder *zstd.Decoder
+	// readBuf is a scratch buffer for the on-disk (possibly compressed) bytes
+	// of the block currently being read. readBlock is only ever called
+	// sequentially from the single producer goroutine in walk, and readBuf's
+	// contents are never referenced once readBlock returns (the decompressed
+	// result lives in its own freshly allocated slice), so reusing it across
+	// blocks is safe and avoids a fresh multi-megabyte allocation per block.
+	readBuf []byte
 }
 
 func openV18Reader(owner *NfFile, file *os.File, fileName string) (*v18Reader, error) {
@@ -111,7 +118,7 @@ func openV18Reader(owner *NfFile, file *os.File, fileName string) (*v18Reader, e
 		return nil, fmt.Errorf("nfFile read V3 directory: %w", err)
 	}
 	checksum := binary.LittleEndian.Uint64(footerBytes[16:24])
-	if checksum != 0 && xxHash64(directory) != checksum {
+	if checksum != 0 && v3Checksum64(directory) != checksum {
 		return nil, fmt.Errorf("nfFile V3 directory checksum mismatch")
 	}
 	if binary.LittleEndian.Uint32(directory[0:4]) != v18DirectoryMagic {
@@ -183,6 +190,7 @@ func (reader *v18Reader) close() error {
 }
 
 func (reader *v18Reader) walk(ctx context.Context, cancel context.CancelFunc, fn func(FlowRecord) error) error {
+	checkEvery := reader.owner.walkContextCheckEvery
 	blocks := make(chan []byte, 2)
 	producerDone := make(chan error, 1)
 	go func() {
@@ -197,10 +205,15 @@ func (reader *v18Reader) walk(ctx context.Context, cancel context.CancelFunc, fn
 			cancel()
 			break
 		}
+		flowCount, nextCheck := uint32(0), uint32(0)
 		walkErr = reader.processFlowBlock(block, func(record FlowRecord) error {
-			if err := ctx.Err(); err != nil {
-				return err
+			if checkEvery != 0 && flowCount == nextCheck {
+				if err := ctx.Err(); err != nil {
+					return err
+				}
+				nextCheck += checkEvery
 			}
+			flowCount++
 			return fn(record)
 		})
 		if walkErr != nil {
@@ -237,7 +250,10 @@ func (reader *v18Reader) readFlowBlocks(ctx context.Context, blocks chan<- []byt
 }
 
 func (reader *v18Reader) readBlock(entry v18DirectoryEntry) ([]byte, error) {
-	onDisk := make([]byte, entry.size)
+	if cap(reader.readBuf) < int(entry.size) {
+		reader.readBuf = make([]byte, entry.size)
+	}
+	onDisk := reader.readBuf[:entry.size]
 	if _, err := reader.file.ReadAt(onDisk, int64(entry.offset)); err != nil {
 		return nil, err
 	}
@@ -251,7 +267,7 @@ func (reader *v18Reader) readBlock(entry v18DirectoryEntry) ([]byte, error) {
 	if rawSize < v18BlockHeader || rawSize > reader.header.blockSize {
 		return nil, fmt.Errorf("invalid raw block size %d", rawSize)
 	}
-	if checksum != 0 && xxHash64(onDisk[v18BlockHeader:]) != checksum {
+	if checksum != 0 && v3Checksum64(onDisk[v18BlockHeader:]) != checksum {
 		return nil, fmt.Errorf("block checksum mismatch")
 	}
 	if encryption != 0 {
@@ -260,16 +276,15 @@ func (reader *v18Reader) readBlock(entry v18DirectoryEntry) ([]byte, error) {
 	if compression == 0 {
 		compression = reader.header.compression
 	}
-	decoded, err := reader.uncompressV18(onDisk[v18BlockHeader:], compression, int(rawSize)-v18BlockHeader)
-	if err != nil {
-		return nil, err
-	}
-	if len(decoded) != int(rawSize)-v18BlockHeader {
-		return nil, fmt.Errorf("decoded block size %d, want %d", len(decoded), int(rawSize)-v18BlockHeader)
-	}
+	// The V3 block header carries the exact decompressed size (rawSize), so
+	// unlike V2/1.7.x we can allocate the final, correctly sized buffer once
+	// and have uncompressV18 decode straight into its tail - no separate
+	// scratch decompression buffer and no second copy to assemble the result.
 	block := make([]byte, rawSize)
 	copy(block, onDisk[:v18BlockHeader])
-	copy(block[v18BlockHeader:], decoded)
+	if err := reader.uncompressV18(onDisk[v18BlockHeader:], compression, block[v18BlockHeader:]); err != nil {
+		return nil, err
+	}
 	return block, nil
 }
 

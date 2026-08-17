@@ -160,7 +160,7 @@ func v18FlowBlock(record []byte) []byte {
 	binary.LittleEndian.PutUint16(block[12:14], 1) // NOT_COMPRESSED
 	binary.LittleEndian.PutUint32(block[24:28], 1)
 	copy(block[v18FlowBlockHead:], record)
-	binary.LittleEndian.PutUint64(block[16:24], xxHash64(block[v18BlockHeader:]))
+	binary.LittleEndian.PutUint64(block[16:24], v3Checksum64(block[v18BlockHeader:]))
 	return block
 }
 
@@ -189,7 +189,7 @@ func writeV3File(t *testing.T, block []byte) string {
 	binary.LittleEndian.PutUint32(fileData[footerOffset:footerOffset+4], v18FooterMagic)
 	binary.LittleEndian.PutUint32(fileData[footerOffset+4:footerOffset+8], uint32(len(directory)))
 	binary.LittleEndian.PutUint64(fileData[footerOffset+8:footerOffset+16], directoryOffset)
-	binary.LittleEndian.PutUint64(fileData[footerOffset+16:footerOffset+24], xxHash64(directory))
+	binary.LittleEndian.PutUint64(fileData[footerOffset+16:footerOffset+24], v3Checksum64(directory))
 
 	path := filepath.Join(t.TempDir(), "flows-v3.nf")
 	if err := os.WriteFile(path, fileData, 0o600); err != nil {
@@ -472,6 +472,38 @@ func TestWalkHonorsCanceledContext(t *testing.T) {
 	})
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("got error %v, want context cancellation", err)
+	}
+}
+
+func TestWalkChecksCancellationWithinBoundedFlows(t *testing.T) {
+	records := make([][]byte, 300)
+	for i := range records {
+		records[i] = v3Record(12)
+	}
+	header := v2Header(NOT_COMPRESSED, 1)
+	header.BlockSize = 4096
+	path := writeV2File(t, header, flowBlock(t, 0, records...))
+	nf := New()
+	if err := nf.Open(path); err != nil {
+		t.Fatal(err)
+	}
+	defer nf.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	seen := 0
+	err := nf.Walk(ctx, func(FlowRecord) error {
+		seen++
+		if seen == 1 {
+			cancel()
+		}
+		return nil
+	})
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("got error %v, want context cancellation", err)
+	}
+	if seen > 256 {
+		t.Fatalf("Walk delivered %d records after cancellation, want at most 256", seen)
 	}
 }
 

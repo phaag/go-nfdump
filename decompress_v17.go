@@ -28,7 +28,10 @@ func (reader *v17Reader) uncompressBlock(blockHeader *DataBlockHeader) ([]byte, 
 		return nil, fmt.Errorf("encrypted data blocks are not supported")
 	}
 
-	dataBlock := make([]byte, blockHeader.Size)
+	if cap(reader.readBuf) < int(blockHeader.Size) {
+		reader.readBuf = make([]byte, blockHeader.Size)
+	}
+	dataBlock := reader.readBuf[:blockHeader.Size]
 	if _, err := io.ReadAtLeast(reader.file, dataBlock, int(blockHeader.Size)); err != nil {
 		return nil, fmt.Errorf("nfFile read data block: %w", err)
 	}
@@ -40,6 +43,14 @@ func (reader *v17Reader) uncompressBlock(blockHeader *DataBlockHeader) ([]byte, 
 
 	switch compression {
 	case NOT_COMPRESSED:
+		// dataBlock still aliases the reused reader.readBuf here (no
+		// decompression step made an independent copy), and readBuf is
+		// overwritten by the next block read while this one may still be
+		// in flight in the walk pipeline, so it must be copied out into an
+		// owned buffer before returning.
+		owned := make([]byte, len(dataBlock))
+		copy(owned, dataBlock)
+		dataBlock = owned
 	case LZO_COMPRESSED:
 		out, err := lzo.Decompress1X(bytes.NewReader(dataBlock), int(blockHeader.Size), int(blockLimit))
 		if err != nil {

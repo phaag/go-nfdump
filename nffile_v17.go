@@ -25,6 +25,12 @@ type v17Reader struct {
 	file        *os.File
 	header      NfFileHeader
 	zstdDecoder *zstd.Decoder
+	// readBuf is a scratch buffer for a block's on-disk (possibly compressed)
+	// bytes. Blocks are always read sequentially by a single goroutine (the
+	// producer in walk, or the caller of ReadDataBlocks), and readBuf's
+	// contents are never referenced once uncompressBlock returns, so reusing
+	// it across blocks is safe and avoids a fresh allocation per block.
+	readBuf []byte
 }
 
 func openV17ReaderV2(owner *NfFile, file *os.File, fileName string) (*v17Reader, error) {
@@ -177,6 +183,7 @@ func (reader *v17Reader) readDataBlocks(ctx context.Context, blockChannel chan<-
 }
 
 func (reader *v17Reader) walk(ctx context.Context, cancel context.CancelFunc, fn func(FlowRecord) error) error {
+	checkEvery := reader.owner.walkContextCheckEvery
 	blockChannel := make(chan DataBlock, 2)
 	producerDone := make(chan error, 1)
 	go func() {
@@ -191,10 +198,15 @@ func (reader *v17Reader) walk(ctx context.Context, cancel context.CancelFunc, fn
 			cancel()
 			break
 		}
+		flowCount, nextCheck := uint32(0), uint32(0)
 		walkErr = reader.processDataBlock(dataBlock, func(raw []byte) error {
-			if err := ctx.Err(); err != nil {
-				return err
+			if checkEvery != 0 && flowCount == nextCheck {
+				if err := ctx.Err(); err != nil {
+					return err
+				}
+				nextCheck += checkEvery
 			}
+			flowCount++
 			record, err := newFlowRecordV3(raw)
 			if err != nil {
 				return err

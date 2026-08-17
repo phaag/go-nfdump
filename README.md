@@ -40,6 +40,8 @@ and decompresses blocks while the callback processes the preceding block. The
 callback runs in the calling goroutine, flow order is preserved, and at most two
 decoded blocks are queued. A record is a view of the current block; call
 `record.Clone()` if it must be retained after the callback returns.
+Cancellation is observed before each block and at least once every 256 flow
+records within a block.
 
 ```go
 err := nf.Walk(context.Background(), func(record nfdump.FlowRecord) error {

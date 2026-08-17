@@ -16,10 +16,11 @@ import (
 )
 
 type NfFile struct {
-	readMu     sync.Mutex
-	stateMu    sync.Mutex
-	readCancel context.CancelFunc
-	reader     fileReader
+	readMu                sync.Mutex
+	stateMu               sync.Mutex
+	readCancel            context.CancelFunc
+	reader                fileReader
+	walkContextCheckEvery uint32
 	// Header is the V1/V2 container header retained for compatibility. It is
 	// not populated for newer container layouts; use Info for new code.
 	Header       NfFileHeader
@@ -124,7 +125,7 @@ const TYPE_STAT = 0x8002
 
 // New returns a new empty NfFile object
 func New() *NfFile {
-	return new(NfFile)
+	return &NfFile{walkContextCheckEvery: 256}
 }
 
 // print %v string function
@@ -342,7 +343,8 @@ func (nfFile *NfFile) AllRecords() *RecordChain {
 // Walk reads flow records while a single producer goroutine prefetches and
 // decompresses upcoming blocks. fn runs in the caller's goroutine. Records are
 // compact views of the current block and must be copied with Clone before retaining
-// them after fn returns.
+// them after fn returns. Context cancellation is checked before each block and
+// at least once every 256 flow records within a block.
 func (nfFile *NfFile) Walk(ctx context.Context, fn func(FlowRecord) error) error {
 	if ctx == nil {
 		return fmt.Errorf("nfFile walk: nil context")
