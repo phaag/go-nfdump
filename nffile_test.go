@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 	"unsafe"
 )
 
@@ -199,7 +200,7 @@ func TestWalkFlowRecordAccessors(t *testing.T) {
 		if !ok || src != netip.MustParseAddr("192.0.2.1") || dst != netip.MustParseAddr("8.8.8.8") {
 			t.Fatalf("unexpected IPs: %v, %v, ok=%t", src, dst, ok)
 		}
-		if got := flow.Extension(EXgenericFlowID); len(got) != len(generic) {
+		if got := flow.Extension(ExtensionGenericFlow); len(got) != len(generic) {
 			t.Fatalf("got generic extension length %d, want %d", len(got), len(generic))
 		}
 		retained = flow.Clone()
@@ -213,8 +214,41 @@ func TestWalkFlowRecordAccessors(t *testing.T) {
 	}
 }
 
+func TestInfoIsContainerNeutral(t *testing.T) {
+	header := v2Header(LZ4_COMPRESSED, 3)
+	header.NfVersion = 0x10705
+	header.Created = 123456789
+	nf := New()
+	if err := nf.Open(writeV2File(t, header)); err != nil {
+		t.Fatal(err)
+	}
+	defer nf.Close()
+
+	info := nf.Info()
+	if info.Layout != FileLayoutV2 || info.NfdumpVersion != header.NfVersion ||
+		info.Created != header.Created || info.Compression != LZ4_COMPRESSED ||
+		info.BlockSize != header.BlockSize || info.FlowBlocks != header.NumBlocks || info.Encrypted {
+		t.Fatalf("unexpected file info: %#v", info)
+	}
+}
+
+func TestOpenReportsUnsupportedContainerLayout(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "flows-v3.nf")
+	if err := os.WriteFile(path, []byte{0x0c, 0xa5, 0x03, 0x00}, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	nf := New()
+	err := nf.Open(path)
+	if !errors.Is(err, ErrUnsupported) {
+		t.Fatalf("got error %v, want ErrUnsupported", err)
+	}
+}
+
 func TestWalkStopsOnCallbackError(t *testing.T) {
-	path := writeV2File(t, v2Header(NOT_COMPRESSED, 2),
+	path := writeV2File(t, v2Header(NOT_COMPRESSED, 5),
+		flowBlock(t, 0, v3Record(12)),
+		flowBlock(t, 0, v3Record(12)),
+		flowBlock(t, 0, v3Record(12)),
 		flowBlock(t, 0, v3Record(12)),
 		flowBlock(t, 0, v3Record(12)))
 	nf := New()
@@ -224,11 +258,19 @@ func TestWalkStopsOnCallbackError(t *testing.T) {
 	defer nf.Close()
 
 	want := errors.New("stop walking")
-	err := nf.Walk(context.Background(), func(FlowRecord) error {
-		return want
-	})
-	if !errors.Is(err, want) {
-		t.Fatalf("got error %v, want %v", err, want)
+	done := make(chan error, 1)
+	go func() {
+		done <- nf.Walk(context.Background(), func(FlowRecord) error {
+			return want
+		})
+	}()
+	select {
+	case err := <-done:
+		if !errors.Is(err, want) {
+			t.Fatalf("got error %v, want %v", err, want)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("Walk did not stop after callback error")
 	}
 }
 

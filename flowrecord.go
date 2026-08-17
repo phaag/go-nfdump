@@ -20,6 +20,34 @@ type RecordFormat uint8
 const (
 	// RecordFormatV3 is the flow-record layout used by nfdump 1.7.x files.
 	RecordFormatV3 RecordFormat = 3
+	// RecordFormatV4 is reserved for the flow-record layout used by nfdump
+	// 1.8.x files. It is exposed now so users can write format-neutral code
+	// without a later API change.
+	RecordFormatV4 RecordFormat = 4
+)
+
+// ExtensionID identifies a logical nfdump extension. The current V3 record
+// layout uses these values directly. Future record layouts translate their
+// on-disk extension representation to the same identifiers before returning a
+// payload from Extension.
+//
+// It is an alias rather than a new defined type to keep calls that use the
+// historical EX...ID constants source-compatible.
+type ExtensionID = uint16
+
+// Version-neutral extension identifiers for the common extensions. The
+// historical EX...ID constants remain available for compatibility with the
+// legacy FlowRecordV3 API.
+const (
+	ExtensionGenericFlow ExtensionID = EXgenericFlowID
+	ExtensionIPv4Flow    ExtensionID = EXipv4FlowID
+	ExtensionIPv6Flow    ExtensionID = EXipv6FlowID
+	ExtensionFlowMisc    ExtensionID = EXflowMiscID
+	ExtensionCounters    ExtensionID = EXcntFlowID
+	ExtensionVLAN        ExtensionID = EXvLanID
+	ExtensionASRouting   ExtensionID = EXasRoutingID
+	ExtensionInPayload   ExtensionID = EXinPayloadID
+	ExtensionIPInfo      ExtensionID = EXipInfoID
 )
 
 // GenericFlow contains the fields common to every flow record that has a
@@ -61,10 +89,10 @@ func (record FlowRecord) Clone() FlowRecord {
 	return FlowRecord{raw: raw, format: record.format}
 }
 
-// Extension returns the raw extension payload for id, without its V3 element
-// header. The returned bytes are read-only and are valid only for the duration
-// of the Walk callback unless the FlowRecord has been cloned.
-func (record FlowRecord) Extension(id uint16) []byte {
+// Extension returns the raw payload of the logical extension id. The returned
+// bytes are read-only and are valid only for the duration of the Walk callback
+// unless the FlowRecord has been cloned.
+func (record FlowRecord) Extension(id ExtensionID) []byte {
 	if record.format != RecordFormatV3 || len(record.raw) < v3RecordHeaderSize {
 		return nil
 	}
@@ -90,7 +118,7 @@ func (record FlowRecord) Extension(id uint16) []byte {
 
 // Generic returns generic flow counters, timestamps, and transport fields.
 func (record FlowRecord) Generic() (GenericFlow, bool) {
-	data := record.Extension(EXgenericFlowID)
+	data := record.Extension(ExtensionGenericFlow)
 	if len(data) < 48 {
 		return GenericFlow{}, false
 	}
@@ -112,11 +140,11 @@ func (record FlowRecord) Generic() (GenericFlow, bool) {
 // IP returns the source and destination address. ok is false when neither an
 // IPv4 nor IPv6 address extension is present.
 func (record FlowRecord) IP() (src, dst netip.Addr, ok bool) {
-	if data := record.Extension(EXipv4FlowID); len(data) >= 8 {
+	if data := record.Extension(ExtensionIPv4Flow); len(data) >= 8 {
 		return netip.AddrFrom4([4]byte{data[3], data[2], data[1], data[0]}),
 			netip.AddrFrom4([4]byte{data[7], data[6], data[5], data[4]}), true
 	}
-	if data := record.Extension(EXipv6FlowID); len(data) >= 32 {
+	if data := record.Extension(ExtensionIPv6Flow); len(data) >= 32 {
 		return netip.AddrFrom16(v3IPv6(data[0:16])), netip.AddrFrom16(v3IPv6(data[16:32])), true
 	}
 	return netip.Addr{}, netip.Addr{}, false
@@ -124,12 +152,12 @@ func (record FlowRecord) IP() (src, dst netip.Addr, ok bool) {
 
 // IsIPv4 reports whether the record contains an IPv4 address extension.
 func (record FlowRecord) IsIPv4() bool {
-	return len(record.Extension(EXipv4FlowID)) >= 8
+	return len(record.Extension(ExtensionIPv4Flow)) >= 8
 }
 
 // IsIPv6 reports whether the record contains an IPv6 address extension.
 func (record FlowRecord) IsIPv6() bool {
-	return len(record.Extension(EXipv6FlowID)) >= 32
+	return len(record.Extension(ExtensionIPv6Flow)) >= 32
 }
 
 // ExporterID returns nfdump's exporter identifier.

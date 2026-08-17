@@ -17,21 +17,23 @@ import (
 	lzo "github.com/rasky/go-lzo"
 )
 
-func (nfFile *NfFile) uncompressBlock(blockHeader *DataBlockHeader) ([]byte, error) {
-	blockLimit := nfFile.blockSizeLimit()
+// uncompressBlock decodes a single V1/V2 block using the compression semantics
+// of the nfdump 1.7.x reader backend.
+func (reader *v17Reader) uncompressBlock(blockHeader *DataBlockHeader) ([]byte, error) {
+	blockLimit := reader.blockSizeLimit()
 	if blockHeader.Size > blockLimit {
 		return nil, fmt.Errorf("block size %d exceeds file block size %d", blockHeader.Size, blockLimit)
 	}
-	if nfFile.Header.Encryption != 0 && blockHeader.Flags&flagBlockUnencrypted == 0 {
+	if reader.header.Encryption != 0 && blockHeader.Flags&flagBlockUnencrypted == 0 {
 		return nil, fmt.Errorf("encrypted data blocks are not supported")
 	}
 
 	dataBlock := make([]byte, blockHeader.Size)
-	if _, err := io.ReadAtLeast(nfFile.file, dataBlock, int(blockHeader.Size)); err != nil {
-		return nil, fmt.Errorf("nfFile read appendix data block: %v", err)
+	if _, err := io.ReadAtLeast(reader.file, dataBlock, int(blockHeader.Size)); err != nil {
+		return nil, fmt.Errorf("nfFile read data block: %w", err)
 	}
 
-	compression := nfFile.Header.Compression
+	compression := reader.header.Compression
 	if blockHeader.Flags&flagBlockUncompressed != 0 {
 		compression = NOT_COMPRESSED
 	}
@@ -41,14 +43,14 @@ func (nfFile *NfFile) uncompressBlock(blockHeader *DataBlockHeader) ([]byte, err
 	case LZO_COMPRESSED:
 		out, err := lzo.Decompress1X(bytes.NewReader(dataBlock), int(blockHeader.Size), int(blockLimit))
 		if err != nil {
-			return nil, fmt.Errorf("nfFile uncompress lzo1x-1 data block: %v", err)
+			return nil, fmt.Errorf("nfFile uncompress lzo1x-1 data block: %w", err)
 		}
 		dataBlock = out
 		blockHeader.Size = uint32(len(out))
 	case BZ2_COMPRESSED:
 		out, err := io.ReadAll(io.LimitReader(bzip2.NewReader(bytes.NewReader(dataBlock)), int64(blockLimit)+1))
 		if err != nil {
-			return nil, fmt.Errorf("nfFile uncompress bzip2 data block: %v", err)
+			return nil, fmt.Errorf("nfFile uncompress bzip2 data block: %w", err)
 		}
 		if len(out) > int(blockLimit) {
 			return nil, fmt.Errorf("nfFile uncompress bzip2 data block: output exceeds block size")
@@ -59,22 +61,22 @@ func (nfFile *NfFile) uncompressBlock(blockHeader *DataBlockHeader) ([]byte, err
 		out := make([]byte, blockLimit)
 		n, err := lz4.UncompressBlock(dataBlock, out)
 		if err != nil {
-			return nil, fmt.Errorf("nfFile uncompress lz4 data block: %v", err)
+			return nil, fmt.Errorf("nfFile uncompress lz4 data block: %w", err)
 		}
 		out = out[:n]
 		dataBlock = out
 		blockHeader.Size = uint32(n)
 	case ZSTD_COMPRESSED:
-		if nfFile.zstdDecoder == nil {
-			var err error
-			nfFile.zstdDecoder, err = zstd.NewReader(nil, zstd.WithDecoderConcurrency(0), zstd.WithDecoderMaxMemory(uint64(blockLimit)))
+		if reader.zstdDecoder == nil {
+			decoder, err := zstd.NewReader(nil, zstd.WithDecoderConcurrency(0), zstd.WithDecoderMaxMemory(uint64(blockLimit)))
 			if err != nil {
-				return nil, fmt.Errorf("nfFile create zstd decoder: %v", err)
+				return nil, fmt.Errorf("nfFile create zstd decoder: %w", err)
 			}
+			reader.zstdDecoder = decoder
 		}
-		out, err := nfFile.zstdDecoder.DecodeAll(dataBlock, nil)
+		out, err := reader.zstdDecoder.DecodeAll(dataBlock, nil)
 		if err != nil {
-			return nil, fmt.Errorf("nfFile uncompress zstd data block: %v", err)
+			return nil, fmt.Errorf("nfFile uncompress zstd data block: %w", err)
 		}
 		dataBlock = out
 		blockHeader.Size = uint32(len(out))

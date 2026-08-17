@@ -45,6 +45,7 @@ func main() {
 
 	// print nffile stats
 	fmt.Printf("nffile:\n%v", nffile)
+	fmt.Printf("container layout: V%d\n", nffile.Info().Layout)
 
 	// Walk is the efficient streaming API. One goroutine reads and
 	// decompresses upcoming blocks while this callback processes each flow.
@@ -72,7 +73,7 @@ func main() {
 			fmt.Printf("DstIP: %v\n", dstIP)
 		}
 
-		if payload := record.Extension(nfdump.EXinPayloadID); payload != nil {
+		if payload := record.Extension(nfdump.ExtensionInPayload); payload != nil {
 			fmt.Printf("Payload length: %d\n", len(payload))
 			fmt.Printf("%s", hex.Dump(payload))
 		}

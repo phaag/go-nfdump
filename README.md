@@ -49,11 +49,19 @@ if err != nil {
 `IP()` returns `netip.Addr` source and destination addresses. `Format()`,
 `ExporterID()`, `Flags()`, `NetFlowVersion()`, `Engine()`, `IsIPv4()`, and
 `IsIPv6()` provide record metadata. `Extension(id)` exposes a read-only raw
-extension payload for fields that do not yet have a native accessor.
+extension payload for fields that do not yet have a native accessor. Prefer
+the version-neutral `Extension...` constants, such as
+`nfdump.ExtensionInPayload`, over the legacy `EX...ID` names.
 
-`AllRecords` remains the legacy API. It produces owned `*FlowRecordV3` values
-and exposes the generated V3 extension structs; use it where that compatibility
-or `OrderBy` is required.
+`Info()` returns format-neutral file metadata (`Layout`, nfdump version,
+creation time, compression, encryption state, block size, and flow-block
+count). `Header` is retained only for V1/V2 compatibility and new code should
+not depend on it.
+
+`AllRecords`, `OrderBy`, and `ReadDataBlocks` remain legacy V1/V2 APIs. They
+produce owned `*FlowRecordV3` values and expose the generated V3 extension
+structs; use them where that compatibility is required. Newer layouts return
+an error matching `nfdump.ErrUnsupported` instead of being silently coerced.
 
 `Walk` and `Close` coordinate safely. Do not start a second read operation on
 the same `NfFile` until `Walk` returns.

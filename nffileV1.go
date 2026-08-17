@@ -10,6 +10,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"os"
 )
 
 const (
@@ -74,51 +75,51 @@ type statRecordV1 struct {
 	SequenceFailure uint32
 }
 
-func (nfFile *NfFile) openV1() error {
+func openV17ReaderV1(owner *NfFile, file *os.File) (*v17Reader, error) {
 
 	var nfFileV1Header NfFileHeaderV1
 	var statRecordV1 statRecordV1
 
-	nfFile.file.Seek(0, io.SeekStart)
-	if err := binary.Read(nfFile.file, binary.LittleEndian, &nfFileV1Header); err != nil {
-		nfFile.close()
-		return fmt.Errorf("nfFile read V1 header: %v", err)
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return nil, fmt.Errorf("nfFile seek V1 header: %w", err)
+	}
+	if err := binary.Read(file, binary.LittleEndian, &nfFileV1Header); err != nil {
+		return nil, fmt.Errorf("nfFile read V1 header: %w", err)
+	}
+	if err := binary.Read(file, binary.LittleEndian, &statRecordV1); err != nil {
+		return nil, fmt.Errorf("nfFile read V1 stats: %w", err)
 	}
 
-	if err := binary.Read(nfFile.file, binary.LittleEndian, &statRecordV1); err != nil {
-		nfFile.close()
-		return fmt.Errorf("nfFile read header: %v", err)
-	}
+	owner.StatRecord.Numflows = statRecordV1.Numflows
+	owner.StatRecord.Numpackets = statRecordV1.Numpackets
+	owner.StatRecord.Numbytes = statRecordV1.Numbytes
 
-	nfFile.StatRecord.Numflows = statRecordV1.Numflows
-	nfFile.StatRecord.Numpackets = statRecordV1.Numpackets
-	nfFile.StatRecord.Numbytes = statRecordV1.Numbytes
+	owner.StatRecord.NumflowsTcp = statRecordV1.NumflowsTcp
+	owner.StatRecord.NumflowsUdp = statRecordV1.NumflowsUdp
+	owner.StatRecord.NumflowsIcmp = statRecordV1.NumflowsIcmp
+	owner.StatRecord.NumflowsOther = statRecordV1.NumflowsOther
 
-	nfFile.StatRecord.NumflowsTcp = statRecordV1.NumflowsTcp
-	nfFile.StatRecord.NumflowsUdp = statRecordV1.NumflowsUdp
-	nfFile.StatRecord.NumflowsIcmp = statRecordV1.NumflowsIcmp
-	nfFile.StatRecord.NumflowsOther = statRecordV1.NumflowsOther
+	owner.StatRecord.NumpacketsTcp = statRecordV1.NumpacketsTcp
+	owner.StatRecord.NumpacketsUdp = statRecordV1.NumpacketsUdp
+	owner.StatRecord.NumpacketsIcmp = statRecordV1.NumpacketsIcmp
+	owner.StatRecord.NumpacketsOther = statRecordV1.NumpacketsOther
 
-	nfFile.StatRecord.NumpacketsTcp = statRecordV1.NumpacketsTcp
-	nfFile.StatRecord.NumpacketsUdp = statRecordV1.NumpacketsUdp
-	nfFile.StatRecord.NumpacketsIcmp = statRecordV1.NumpacketsIcmp
-	nfFile.StatRecord.NumpacketsOther = statRecordV1.NumpacketsOther
+	owner.StatRecord.NumbytesTcp = statRecordV1.NumbytesTcp
+	owner.StatRecord.NumbytesUdp = statRecordV1.NumbytesUdp
+	owner.StatRecord.NumbytesIcmp = statRecordV1.NumbytesIcmp
+	owner.StatRecord.NumbytesOther = statRecordV1.NumbytesOther
 
-	nfFile.StatRecord.NumbytesTcp = statRecordV1.NumbytesTcp
-	nfFile.StatRecord.NumbytesUdp = statRecordV1.NumbytesUdp
-	nfFile.StatRecord.NumbytesIcmp = statRecordV1.NumbytesIcmp
-	nfFile.StatRecord.NumbytesOther = statRecordV1.NumbytesOther
+	owner.StatRecord.FirstSeen = uint64(statRecordV1.FirstSeen*1000 + uint32(statRecordV1.MsecFirst))
+	owner.StatRecord.LastSeen = uint64(statRecordV1.LastSeen*1000 + uint32(statRecordV1.MsecLast))
 
-	nfFile.StatRecord.FirstSeen = uint64(statRecordV1.FirstSeen*1000 + uint32(statRecordV1.MsecFirst))
-	nfFile.StatRecord.LastSeen = uint64(statRecordV1.LastSeen*1000 + uint32(statRecordV1.MsecLast))
+	owner.StatRecord.SequenceFailure = uint64(statRecordV1.SequenceFailure)
+	owner.ident = string(nfFileV1Header.Ident[:])
 
-	nfFile.StatRecord.SequenceFailure = uint64(statRecordV1.SequenceFailure)
-	nfFile.ident = string(nfFileV1Header.Ident[:])
-
-	nfFile.Header.Magic = nfFileV1Header.Magic
-	nfFile.Header.Version = nfFileV1Header.Version
-	nfFile.Header.NfVersion = 0x106
-	nfFile.Header.Created = 0
+	header := NfFileHeader{}
+	header.Magic = nfFileV1Header.Magic
+	header.Version = nfFileV1Header.Version
+	header.NfVersion = 0x106
+	header.Created = 0
 	compression := 0
 	if nfFileV1Header.Flags&0x1 == 1 {
 		compression = 1 // LO0
@@ -127,13 +128,20 @@ func (nfFile *NfFile) openV1() error {
 	} else if nfFileV1Header.Flags&0x10 == 0x10 {
 		compression = 3 // LZ4
 	}
-	nfFile.Header.Compression = uint8(compression)
-	nfFile.Header.Encryption = 0
-	nfFile.Header.AppendixBlocks = 0
-	nfFile.Header.Unused = 0
-	nfFile.Header.OffAppendix = 0
-	nfFile.Header.BlockSize = 0
-	nfFile.Header.NumBlocks = nfFileV1Header.NumBlocks
+	header.Compression = uint8(compression)
+	header.Encryption = 0
+	header.AppendixBlocks = 0
+	header.Unused = 0
+	header.OffAppendix = 0
+	header.BlockSize = 0
+	header.NumBlocks = nfFileV1Header.NumBlocks
+	owner.Header = header // Deprecated V1/V2 compatibility field.
+	owner.info = FileInfo{
+		Layout:        FileLayoutV1,
+		NfdumpVersion: header.NfVersion,
+		Compression:   Compression(header.Compression),
+		FlowBlocks:    header.NumBlocks,
+	}
 
-	return nil
+	return &v17Reader{owner: owner, file: file, header: header}, nil
 }
